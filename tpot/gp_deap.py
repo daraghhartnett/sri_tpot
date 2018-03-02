@@ -239,6 +239,7 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, pbar,
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
+        harvest_and_print_memory_usage()
         # after each population save a periodic pipeline
         if per_generation_function is not None:
             per_generation_function()
@@ -270,6 +271,9 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, pbar,
         # Select the next generation population
         population[:] = toolbox.select(population + offspring, mu)
 
+        # Print the memory usage
+        harvest_and_print_memory_usage()
+
         # pbar process
         if not pbar.disable:
             # Print only the best individual fitness
@@ -293,7 +297,42 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen, pbar,
         record = stats.compile(population) if stats is not None else {}
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
 
+    # Print the memory usage
+    harvest_and_print_memory_usage()
     return population, logbook
+
+
+'''
+Announce how much memory is being used
+'''
+def harvest_and_print_memory_usage():
+    import sys
+    import os
+    import psutil
+    import resource
+    import logging
+
+    # init logger
+    _logger = logging.getLogger(__name__)
+
+    process = psutil.Process(os.getpid())
+    _logger.info(process.memory_info())
+
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+
+    for name, desc in [
+        ('ru_utime', 'User time'),
+        ('ru_stime', 'System time'),
+        ('ru_maxrss', 'Max. Resident Set Size'),
+        ('ru_ixrss', 'Shared Memory Size'),
+        ('ru_idrss', 'Unshared Memory Size'),
+        ('ru_isrss', 'Stack Size'),
+        ('ru_inblock', 'Block inputs'),
+        ('ru_oublock', 'Block outputs'),
+    ]:
+        _logger.info('%-25s (%-10s) = %s' % (desc, name, getattr(usage, name)))
+
+    sys.stdout.flush()
 
 
 def cxOnePoint(ind1, ind2):

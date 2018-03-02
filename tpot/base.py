@@ -73,6 +73,8 @@ from .metrics import SCORERS
 from .gp_types import Output_Array
 from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_score, cxOnePoint
 
+import logging
+
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
 if sys.platform.startswith('win'):
@@ -239,6 +241,9 @@ class TPOTBase(BaseEstimator):
         None
 
         """
+        # init logger
+        self._logger = logging.getLogger(__name__)
+
         if self.__class__.__name__ == 'TPOTBase':
             raise RuntimeError('Do not instantiate the TPOTBase class directly; use TPOTRegressor or TPOTClassifier instead.')
 
@@ -451,7 +456,7 @@ class TPOTBase(BaseEstimator):
         self._add_terminals()
 
         if self.verbosity > 2:
-            print('{} operators have been imported by TPOT.'.format(len(self.operators)))
+            self._logger.info('{} operators have been imported by TPOT.'.format(len(self.operators)))
 
     def _add_operators(self):
         for operator in self.operators:
@@ -503,7 +508,7 @@ class TPOTBase(BaseEstimator):
         self._toolbox.register('expr_mut', self._gen_grow_safe, min_=1, max_=4)
         self._toolbox.register('mutate', self._random_mutation_operator)
 
-    def fit(self, features, target, sample_weight=None, groups=None):
+    def fit(self, features, target, pickledModelPath, sample_weight=None, groups=None):
         """Fit an optimized machine learning pipeline.
 
         Uses genetic programming to optimize a machine learning pipeline that
@@ -525,6 +530,7 @@ class TPOTBase(BaseEstimator):
             make sure to apply imputation to your feature set prior to passing it to TPOT.
         target: array-like {n_samples}
             List of class labels for prediction
+        pickledModelPath: path to pickle the best model to
         sample_weight: array-like {n_samples}, optional
             Per-sample weights. Higher weights force TPOT to put more emphasis on those points
         groups: array-like, with shape {n_samples, }, optional
@@ -538,6 +544,7 @@ class TPOTBase(BaseEstimator):
             Returns a copy of the fitted TPOT object
 
         """
+        self._logger.info("TPOT Fit method invoked...")
         features = features.astype(np.float64)
 
         # Resets the imputer to be fit for the new dataset
@@ -551,7 +558,7 @@ class TPOTBase(BaseEstimator):
                     'Please use \"TPOT sparse\" for sparse matrix.'.format(self.config_dict_params)
                 )
             elif self.config_dict_params != "TPOT sparse":
-                print(
+                self._logger.info(
                     'Warning: Since the input matrix is a sparse matrix, please makes sure all the operators in the '
                     'customized config dictionary supports sparse matriies.'
                 )
@@ -567,7 +574,7 @@ class TPOTBase(BaseEstimator):
             features, _, target, _ = train_test_split(features, target, train_size=self.subsample, random_state=self.random_state)
             # Raise a warning message if the training size is less than 1500 when subsample is not default value
             if features.shape[0] < 1500:
-                print(
+                self._logger.info(
                     'Warning: Although subsample can accelerate pipeline optimization process, '
                     'too small training sample size may cause unpredictable effect on maximizing '
                     'score in pipeline optimization process. Increasing subsample ratio may get '
@@ -660,7 +667,7 @@ class TPOTBase(BaseEstimator):
                         self._pbar.close()
 
                     self._update_top_pipeline()
-                    self._summary_of_best_pipeline(features, target)
+                    self._summary_of_best_pipeline(features, target, pickledModelPath)
                     # Delete the temporary cache before exiting
                     self._cleanup_memory()
                     break
@@ -735,7 +742,7 @@ class TPOTBase(BaseEstimator):
             # need raise RuntimeError because no pipeline has been optimized
             raise RuntimeError('A pipeline has not yet been optimized. Please call fit() first.')
 
-    def _summary_of_best_pipeline(self, features, target):
+    def _summary_of_best_pipeline(self, features, target, pickledModelPath):
         """Print out best pipeline at the end of optimization process.
 
         Parameters
@@ -745,6 +752,9 @@ class TPOTBase(BaseEstimator):
 
         target: array-like {n_samples}
             List of class labels for prediction
+
+        pickledModelPath: string path
+            path to pickle the best model to
 
         Returns
         -------
@@ -771,7 +781,7 @@ class TPOTBase(BaseEstimator):
                     print('')
 
                 optimized_pipeline_str = self.clean_pipeline_string(self._optimized_pipeline)
-                print('Best pipeline:', optimized_pipeline_str)
+                self._logger.info('Best pipeline: %s', optimized_pipeline_str)
 
             # Store and fit the entire Pareto front as fitted models for convenience
             self.pareto_front_fitted_pipelines_ = {}
@@ -781,6 +791,14 @@ class TPOTBase(BaseEstimator):
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
                     self.pareto_front_fitted_pipelines_[str(pipeline)].fit(features, target)
+
+                    # Having trained with all the available data, pickle the model for later use
+                    self._logger.info("Preparing to pickle model")
+                    import pickle
+                    if (str(self._optimized_pipeline) in self.pareto_front_fitted_pipelines_.keys()):
+                        bestModel = self.pareto_front_fitted_pipelines_[str(self._optimized_pipeline)]
+                        pickle.dump(bestModel, open(pickledModelPath, "wb"))
+                        self._logger.info("Model has been pickled")
 
     def predict(self, features):
         """Use the optimized pipeline to predict the target for a feature set.
@@ -1002,7 +1020,7 @@ class TPOTBase(BaseEstimator):
         array-like {n_samples, n_features}
         """
         if self.verbosity > 1:
-            print('Imputing missing values in feature set')
+            self._logger.info('Imputing missing values in feature set')
 
         if self._fitted_imputer is None:
             self._fitted_imputer = Imputer(strategy="median")

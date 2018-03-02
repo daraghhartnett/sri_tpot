@@ -25,6 +25,7 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
 from sklearn.metrics import make_scorer, SCORERS
+from sklearn.metrics import jaccard_similarity_score
 
 
 def balanced_accuracy(y_true, y_pred):
@@ -67,3 +68,4 @@ def balanced_accuracy(y_true, y_pred):
 
 
 SCORERS['balanced_accuracy'] = make_scorer(balanced_accuracy)
+SCORERS['jaccard_similarity_score'] = make_scorer(jaccard_similarity_score)
