@@ -721,6 +721,10 @@ class TPOTBase(BaseEstimator):
                     self._optimized_pipeline = pipeline
                     self._optimized_pipeline_score = pipeline_scores.wvalues[1]
 
+                self._logger.info("Current best (%f): %s" %
+                                  (self._optimized_pipeline_score,
+                                   self.clean_pipeline_string(self._optimize_pipeline)))
+
             if not self._optimized_pipeline:
                 raise RuntimeError('There was an error in the TPOT optimization '
                                    'process. This could be because the data was '
