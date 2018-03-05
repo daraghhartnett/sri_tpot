@@ -75,6 +75,8 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
+print("Latest TPOT")
+
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
 if sys.platform.startswith('win'):
@@ -723,7 +725,7 @@ class TPOTBase(BaseEstimator):
 
                 self._logger.info("Current best (%f): %s" % 
                                   (self._optimized_pipeline_score, 
-                                   self.clean_pipeline_string(self._optimize_pipeline)))
+                                   self.clean_pipeline_string(self._optimized_pipeline)))
 
             if not self._optimized_pipeline:
                 raise RuntimeError('There was an error in the TPOT optimization '
