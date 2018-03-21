@@ -75,8 +75,6 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("Latest TPOT")
-
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
 if sys.platform.startswith('win'):
@@ -109,7 +107,8 @@ class TPOTBase(BaseEstimator):
                  random_state=None, config_dict=None,
                  warm_start=False, memory=None,
                  periodic_checkpoint_folder=None, early_stop=None,
-                 verbosity=0, disable_update_check=False):
+                 verbosity=0, disable_update_check=False,
+                 update_callback=None):
         """Set up the genetic programming algorithm for pipeline optimization.
 
         Parameters
@@ -237,6 +236,9 @@ class TPOTBase(BaseEstimator):
             A setting of 2 or higher will add a progress bar during the optimization procedure.
         disable_update_check: bool, optional (default: False)
             Flag indicating whether the TPOT version checker should be disabled.
+        update_callback: callable(pipeline, score), optional (default: None)
+            Function to be called for each pipeline in the front at the
+            end of each epoch.
 
         Returns
         -------
@@ -274,6 +276,7 @@ class TPOTBase(BaseEstimator):
         self._last_optimized_pareto_front_n_gens = 0
         self.memory = memory
         self._memory = None # initial Memory setting for sklearn pipeline
+        self.update_callback = update_callback
 
         # dont save periodic pipelines more often than this
         self._output_best_pipeline_period_seconds = 30
@@ -719,13 +722,15 @@ class TPOTBase(BaseEstimator):
         if self._pareto_front:
             self._optimized_pipeline_score = -float('inf')
             for pipeline, pipeline_scores in zip(self._pareto_front.items, reversed(self._pareto_front.keys)):
+                if self.update_callback is not None:
+                    self.update_callback(pipeline, pipeline_scores.wvalues[1])
                 if pipeline_scores.wvalues[1] > self._optimized_pipeline_score:
                     self._optimized_pipeline = pipeline
                     self._optimized_pipeline_score = pipeline_scores.wvalues[1]
 
-                self._logger.info("Current best (%f): %s" % 
-                                  (self._optimized_pipeline_score, 
-                                   self.clean_pipeline_string(self._optimized_pipeline)))
+            self._logger.info("Current best (%f): %s" % 
+                              (self._optimized_pipeline_score, 
+                               self.clean_pipeline_string(self._optimized_pipeline)))
 
             if not self._optimized_pipeline:
                 raise RuntimeError('There was an error in the TPOT optimization '
