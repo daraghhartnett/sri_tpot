@@ -36,6 +36,9 @@ from importlib import import_module
 from .tpot import TPOTClassifier, TPOTRegressor
 from ._version import __version__
 
+import logging
+
+_logger = logging.getLogger(__name__)
 
 def positive_integer(value):
     """Ensure that the provided value is a positive integer.
@@ -432,7 +435,7 @@ def _get_arg_parser():
 
 
 def _print_args(args):
-    print('\nTPOT settings:')
+    _logger.info('\nTPOT settings:')
     for arg, arg_val in sorted(args.__dict__.items()):
         if arg == 'DISABLE_UPDATE_CHECK':
             continue
@@ -449,8 +452,8 @@ def _print_args(args):
         # Pad the outputs with an even amount of space
         arg = (arg + (' ') * 100)[:20]
         arg_val = ((' ') * 5 + str(arg_val))
-        print('{}={}'.format(arg, arg_val))
-    print('')
+        _logger.info('{}={}'.format(arg, arg_val))
+    _logger.info('')
 
 
 def _read_data_file(args):
@@ -484,10 +487,10 @@ def load_scoring_function(scoring_func):
             scoring_func = getattr(import_module(module_name), func_name)
             sys.path.pop(0)
 
-            print('manual scoring function: {}'.format(scoring_func))
-            print('taken from module: {}'.format(module_name))
+            _logger.info('manual scoring function: {}'.format(scoring_func))
+            _logger.info('taken from module: {}'.format(module_name))
         except Exception as e:
-            print('failed importing custom scoring function, error: {}'.format(str(e)))
+            _logger.info('failed importing custom scoring function, error: {}'.format(str(e)))
             raise ValueError(e)
 
     return scoring_func
@@ -533,15 +536,15 @@ def tpot_driver(args):
 
     if args.VERBOSITY in [1, 2] and tpot_obj._optimized_pipeline:
         training_score = max([x.wvalues[1] for x in tpot_obj._pareto_front.keys])
-        print('\nTraining score: {}'.format(training_score))
-        print('Holdout score: {}'.format(tpot_obj.score(testing_features, testing_target)))
+        _logger.info('\nTraining score: {}'.format(training_score))
+        _logger.info('Holdout score: {}'.format(tpot_obj.score(testing_features, testing_target)))
 
     elif args.VERBOSITY >= 3 and tpot_obj._pareto_front:
-        print('Final Pareto front testing scores:')
+        _logger.info('Final Pareto front testing scores:')
         pipelines = zip(tpot_obj._pareto_front.items, reversed(tpot_obj._pareto_front.keys))
         for pipeline, pipeline_scores in pipelines:
             tpot_obj._fitted_pipeline = tpot_obj.pareto_front_fitted_pipelines_[str(pipeline)]
-            print('{TRAIN_SCORE}\t{TEST_SCORE}\t{PIPELINE}'.format(
+            _logger.info('{TRAIN_SCORE}\t{TEST_SCORE}\t{PIPELINE}'.format(
                     TRAIN_SCORE=int(pipeline_scores.wvalues[0]),
                     TEST_SCORE=tpot_obj.score(testing_features, testing_target),
                     PIPELINE=pipeline

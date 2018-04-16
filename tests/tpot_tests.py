@@ -63,6 +63,10 @@ from nose.tools import assert_raises, assert_not_equal, assert_greater_equal, as
 from driver_tests import captured_output
 
 from tqdm import tqdm
+import logging
+
+# init logger
+_logger = logging.getLogger(__name__)
 
 try:
     from StringIO import StringIO
@@ -190,7 +194,7 @@ def test_init_default_scoring_6():
     assert len(w) == 1
     assert issubclass(w[-1].category, DeprecationWarning)
     assert "This scoring type was deprecated" in str(w[-1].message)
-    print(tpot_obj.scoring_function)
+    _logger.info(tpot_obj.scoring_function)
     assert tpot_obj.scoring_function == 'my_scorer'
 
 

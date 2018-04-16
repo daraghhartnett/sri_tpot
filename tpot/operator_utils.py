@@ -27,6 +27,9 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, TransformerMixin
 import inspect
 
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class Operator(object):
     """Base class for operators in TPOT."""
@@ -72,7 +75,7 @@ def source_decode(sourcecode):
             exec('from {} import {}'.format(import_str, op_str))
         op_obj = eval(op_str)
     except ImportError:
-        print('Warning: {} is not available and will not be used by TPOT.'.format(sourcecode))
+        _logger.info('Warning: {} is not available and will not be used by TPOT.'.format(sourcecode))
         op_obj = None
 
     return import_str, op_str, op_obj

@@ -37,6 +37,9 @@ from sklearn.model_selection import train_test_split
 from deap import creator
 
 from nose.tools import assert_raises, assert_equal
+import logging
+
+_logger = logging.getLogger(__name__)
 
 test_operator_key_1 = 'sklearn.feature_selection.SelectPercentile'
 test_operator_key_2 = 'sklearn.feature_selection.SelectFromModel'
@@ -459,7 +462,7 @@ def test_operator_export_2():
     export_string = TPOTSelectFromModel.export('gini', 0.10, 100, 0.10)
     expected_string = ("SelectFromModel(estimator=ExtraTreesClassifier(criterion=\"gini\","
         " max_features=0.1, n_estimators=100), threshold=0.1)")
-    print(export_string)
+    logging.info(export_string)
     assert export_string == expected_string
 
 

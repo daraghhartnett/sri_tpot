@@ -75,7 +75,7 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("Latest TPOT")
+print("TPOT version 0.9.3 (SRI Fork)")
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
@@ -546,7 +546,8 @@ class TPOTBase(BaseEstimator):
             Returns a copy of the fitted TPOT object
 
         """
-        self._logger.info("TPOT Fit method invoked...")
+        self._logger.info("Start method: fit(self, features, target, pickledModelPath, sample_weight=None, groups=None)")
+
         features = features.astype(np.float64)
 
         # Resets the imputer to be fit for the new dataset
@@ -628,7 +629,7 @@ class TPOTBase(BaseEstimator):
             total_evals = self.offspring_size * self.generations + self.population_size
 
         self._pbar = tqdm(total=total_evals, unit='pipeline', leave=False,
-                          disable=not (self.verbosity >= 2), desc='Optimization Progress')
+                          disable=True, desc='Optimization Progress')
 
         try:
             with warnings.catch_warnings():
@@ -784,7 +785,7 @@ class TPOTBase(BaseEstimator):
             if self.verbosity in [1, 2]:
                 # Add an extra line of spacing if the progress bar was used
                 if self.verbosity >= 2:
-                    print('')
+                    self._logger.info('')
 
                 optimized_pipeline_str = self.clean_pipeline_string(self._optimized_pipeline)
                 self._logger.info('Best pipeline: %s', optimized_pipeline_str)
