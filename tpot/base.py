@@ -46,6 +46,9 @@ from deap import base, creator, tools, gp
 from tqdm import tqdm
 from copy import copy, deepcopy
 
+#DBF
+from pathos.multiprocessing import ProcessPool
+
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_X_y
 from sklearn.externals.joblib import Parallel, delayed, Memory
@@ -110,7 +113,7 @@ class TPOTBase(BaseEstimator):
                  warm_start=False, memory=None,
                  periodic_checkpoint_folder=None, early_stop=None,
                  verbosity=0, disable_update_check=False,
-                 update_callback=None):
+                 update_callback=None, generation_callback=None):
         """Set up the genetic programming algorithm for pipeline optimization.
 
         Parameters
@@ -279,6 +282,7 @@ class TPOTBase(BaseEstimator):
         self.memory = memory
         self._memory = None # initial Memory setting for sklearn pipeline
         self.update_callback = update_callback
+        self.generation_callback = generation_callback
 
         # dont save periodic pipelines more often than this
         self._output_best_pipeline_period_seconds = 30
@@ -725,8 +729,8 @@ class TPOTBase(BaseEstimator):
         if self._pareto_front:
             self._optimized_pipeline_score = -float('inf')
             for pipeline, pipeline_scores in zip(self._pareto_front.items, reversed(self._pareto_front.keys)):
-                if self.update_callback is not None:
-                    self.update_callback(pipeline, pipeline_scores.wvalues[1])
+#                if self.update_callback is not None:
+#                    self.update_callback(pipeline, pipeline_scores.wvalues[1])
                 if pipeline_scores.wvalues[1] > self._optimized_pipeline_score:
                     self._optimized_pipeline = pipeline
                     self._optimized_pipeline_score = pipeline_scores.wvalues[1]
@@ -966,6 +970,9 @@ class TPOTBase(BaseEstimator):
             if self._last_optimized_pareto_front_n_gens >= self.early_stop:
                 raise StopIteration("The optimized pipeline was not improved after evaluating {} more generations. "
                                     "Will end the optimization process.\n".format(self.early_stop))
+        if self.generation_callback is not None:
+            self._logger.info("Calling generation callback")
+            self.generation_callback()
 
     def _save_periodic_pipeline(self):
         try:
@@ -1194,22 +1201,43 @@ class TPOTBase(BaseEstimator):
                 val = partial_wrapped_cross_val_score(sklearn_pipeline=sklearn_pipeline)
                 result_score_list = self._update_val(val, result_score_list)
         else:
+            #DBF
+            p = ProcessPool()
+            for val in p.imap(lambda x: partial_wrapped_cross_val_score(sklearn_pipeline=x), sklearn_pipeline_list):
+                result_score_list = self._update_val(val, result_score_list)
+                self._stop_by_max_time_mins()                
+
+#            for chunk_idx in range(0, len(sklearn_pipeline_list), self.n_jobs * 4):
+#                self._stop_by_max_time_mins()
+#                tmp_result_scores = 
+#                                          sklearn_pipeline_list[chunk_idx:chunk_idx+self.n_jobs*4])
+#                for val in tmp_result_scores:
+#                    result_score_list = self._update_val(val, result_score_list)
+
             # chunk size for pbar update
-            for chunk_idx in range(0, len(sklearn_pipeline_list), self.n_jobs * 4):
-                self._stop_by_max_time_mins()
-                parallel = Parallel(n_jobs=self.n_jobs, verbose=0, pre_dispatch='2*n_jobs')
-                tmp_result_scores = parallel(delayed(partial_wrapped_cross_val_score)(sklearn_pipeline=sklearn_pipeline)
-                                             for sklearn_pipeline in sklearn_pipeline_list[chunk_idx:chunk_idx + self.n_jobs * 4])
+#            for chunk_idx in range(0, len(sklearn_pipeline_list), self.n_jobs * 4):
+#                self._stop_by_max_time_mins()
+#                parallel = Parallel(n_jobs=self.n_jobs, verbose=0, pre_dispatch='2*n_jobs')
+#                tmp_result_scores = parallel(delayed(partial_wrapped_cross_val_score)(sklearn_pipeline=sklearn_pipeline)
+#                                             for sklearn_pipeline in sklearn_pipeline_list[chunk_idx:chunk_idx + self.n_jobs * 4])
                 # update pbar
-                for val in tmp_result_scores:
-                    result_score_list = self._update_val(val, result_score_list)
 
         self._update_evaluated_individuals_(result_score_list, eval_individuals_str, operator_counts, stats_dicts)
 
-        """Look up the operator count and cross validation score to use in the optimization"""
-        return [(self.evaluated_individuals_[str(individual)]['operator_count'],
-                 self.evaluated_individuals_[str(individual)]['internal_cv_score'])
-                for individual in individuals]
+        result = []
+        for individual in individuals:
+            count = self.evaluated_individuals_[str(individual)]['operator_count']
+            score = self.evaluated_individuals_[str(individual)]['internal_cv_score']
+            result.append((count, score))
+            if score != 'Timeout' and self.update_callback is not None:
+                self.update_callback(individual, score)
+
+        return result
+
+#        """Look up the operator count and cross validation score to use in the optimization"""
+#        return [(self.evaluated_individuals_[str(individual)]['operator_count'],
+#                 self.evaluated_individuals_[str(individual)]['internal_cv_score'])
+#                for individual in individuals]
 
     def _preprocess_individuals(self, individuals):
         """Preprocess DEAP individuals before pipeline evaluation.
