@@ -92,11 +92,12 @@ classifier_config_dict = {
         'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.]
     },
 
-    'sklearn.linear_model.LogisticRegression': {
-        'penalty': ["l1", "l2"],
-        'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.],
-        'dual': [True, False]
-    },
+#    Disabled for testing.  To slow for debugging!
+#    'sklearn.linear_model.LogisticRegression': {
+#        'penalty': ["l1", "l2"],
+#        'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.],
+#        'dual': [True, False]
+#    },
 
     'xgboost.XGBClassifier': {
         'n_estimators': [100],
