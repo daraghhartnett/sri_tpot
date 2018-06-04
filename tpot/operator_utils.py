@@ -25,6 +25,9 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, TransformerMixin
+from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
+from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
+import d3m.index
 import inspect
 
 import logging
@@ -71,9 +74,12 @@ def source_decode(sourcecode):
     try:
         if sourcecode.startswith('tpot.'):
             exec('from {} import {}'.format(import_str[4:], op_str))
+            op_obj = eval(op_str)
         else:
-            exec('from {} import {}'.format(import_str, op_str))
-        op_obj = eval(op_str)
+            exec('from d3m.primitives.{} import {}'.format(import_str, op_str))
+            op_obj = D3MWrapperClassFactory(eval(op_str))
+            op_str = op_obj.__name__
+            
     except ImportError:
         _logger.info('Warning: {} is not available and will not be used by TPOT.'.format(sourcecode))
         op_obj = None
@@ -163,127 +169,177 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
 
     if not op_obj:
         return None, None
-    else:
-        # define if the operator can be the root of a pipeline
-        if issubclass(op_obj, ClassifierMixin) or issubclass(op_obj, RegressorMixin):
-            class_profile['root'] = True
-            optype = "Classifier or Regressor"
+
+    optype = _get_optype(obj_obj)
+
+    @classmethod
+    def op_type(cls):
+        """Return the operator type.
+        
+        Possible values:
+        "Classifier", "Regressor", "Selector", "Preprocessor"
+        """
+        return optype
+
+    class_profile['type'] = op_type
+    class_profile['sklearn_class'] = op_obj
+    import_hash = {}
+    import_hash[import_str] = [op_str]
+    
+    arg_types = []
+    for pname in sorted(opdict.keys()):
+        prange = opdict[pname]
+        if not isinstance(prange, dict):
+            classname = '{}__{}'.format(op_str, pname)
+            arg_types.append(ARGTypeClassFactory(classname, prange, ArgBaseClass))
         else:
-            optype = "Preprocessor or Selector"
-
-        @classmethod
-        def op_type(cls):
-            """Return the operator type.
-
-            Possible values:
-                "Classifier", "Regressor", "Selector", "Preprocessor"
-            """
-            return optype
-
-        class_profile['type'] = op_type
-        class_profile['sklearn_class'] = op_obj
-        import_hash = {}
-        import_hash[import_str] = [op_str]
-        arg_types = []
-
-        for pname in sorted(opdict.keys()):
-            prange = opdict[pname]
-            if not isinstance(prange, dict):
-                classname = '{}__{}'.format(op_str, pname)
-                arg_types.append(ARGTypeClassFactory(classname, prange, ArgBaseClass))
-            else:
-                for dkey, dval in prange.items():
-                    dep_import_str, dep_op_str, dep_op_obj = source_decode(dkey)
-                    if dep_import_str in import_hash:
-                        import_hash[import_str].append(dep_op_str)
-                    else:
-                        import_hash[dep_import_str] = [dep_op_str]
-                    dep_op_list[pname] = dep_op_str
-                    dep_op_type[pname] = dep_op_obj
-                    if dval:
-                        for dpname in sorted(dval.keys()):
-                            dprange = dval[dpname]
-                            classname = '{}__{}__{}'.format(op_str, dep_op_str, dpname)
-                            arg_types.append(ARGTypeClassFactory(classname, dprange, ArgBaseClass))
-        class_profile['arg_types'] = tuple(arg_types)
-        class_profile['import_hash'] = import_hash
-        class_profile['dep_op_list'] = dep_op_list
-        class_profile['dep_op_type'] = dep_op_type
-
-        @classmethod
-        def parameter_types(cls):
-            """Return the argument and return types of an operator.
-
-            Parameters
-            ----------
-            None
-
-            Returns
-            -------
-            parameter_types: tuple
-                Tuple of the DEAP parameter types and the DEAP return type for the
-                operator
-
-            """
-            return ([np.ndarray] + arg_types, np.ndarray)
-
-        class_profile['parameter_types'] = parameter_types
-
-        @classmethod
-        def export(cls, *args):
-            """Represent the operator as a string so that it can be exported to a file.
-
-            Parameters
-            ----------
-            args
-                Arbitrary arguments to be passed to the operator
-
-            Returns
-            -------
-            export_string: str
-                String representation of the sklearn class with its parameters in
-                the format:
-                SklearnClassName(param1="val1", param2=val2)
-
-            """
-            op_arguments = []
-
-            if dep_op_list:
-                dep_op_arguments = {}
-
-            for arg_class, arg_value in zip(arg_types, args):
-                aname_split = arg_class.__name__.split('__')
-                if isinstance(arg_value, str):
-                    arg_value = '\"{}\"'.format(arg_value)
-                if len(aname_split) == 2:  # simple parameter
-                    op_arguments.append("{}={}".format(aname_split[-1], arg_value))
-                # Parameter of internal operator as a parameter in the
-                # operator, usually in Selector
+            for dkey, dval in prange.items():
+                dep_import_str, dep_op_str, dep_op_obj = source_decode(dkey)
+                if dep_import_str in import_hash:
+                    import_hash[import_str].append(dep_op_str)
                 else:
-                    if aname_split[1] not in dep_op_arguments:
-                        dep_op_arguments[aname_split[1]] = []
-                    dep_op_arguments[aname_split[1]].append("{}={}".format(aname_split[-1], arg_value))
+                    import_hash[dep_import_str] = [dep_op_str]
+                dep_op_list[pname] = dep_op_str
+                dep_op_type[pname] = dep_op_obj
+                if dval:
+                    for dpname in sorted(dval.keys()):
+                        dprange = dval[dpname]
+                        classname = '{}__{}__{}'.format(op_str, dep_op_str, dpname)
+                        arg_types.append(ARGTypeClassFactory(classname, dprange, ArgBaseClass))
 
-            tmp_op_args = []
-            if dep_op_list:
-                # To make sure the inital operators is the first parameter just
-                # for better persentation
-                for dep_op_pname, dep_op_str in dep_op_list.items():
-                    arg_value = dep_op_str # a callable function, e.g scoring function
-                    doptype = dep_op_type[dep_op_pname]
-                    if inspect.isclass(doptype): # a estimator
-                        if issubclass(doptype, BaseEstimator) or \
-                            issubclass(doptype, ClassifierMixin) or \
-                            issubclass(doptype, RegressorMixin) or \
-                            issubclass(doptype, TransformerMixin):
-                            arg_value = "{}({})".format(dep_op_str, ", ".join(dep_op_arguments[dep_op_str]))
-                    tmp_op_args.append("{}={}".format(dep_op_pname, arg_value))
-            op_arguments = tmp_op_args + op_arguments
-            return "{}({})".format(op_obj.__name__, ", ".join(op_arguments))
+    class_profile['arg_types'] = tuple(arg_types)
+    class_profile['import_hash'] = import_hash
+    class_profile['dep_op_list'] = dep_op_list
+    class_profile['dep_op_type'] = dep_op_type
 
-        class_profile['export'] = export
+    @classmethod
+    def parameter_types(cls):
+        """Return the argument and return types of an operator.
 
-        op_classname = 'TPOT_{}'.format(op_str)
-        op_class = type(op_classname, (BaseClass,), class_profile)
-        op_class.__name__ = op_str
-        return op_class, arg_types
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        parameter_types: tuple
+        Tuple of the DEAP parameter types and the DEAP return type for the
+        operator
+
+        """
+        return ([np.ndarray] + arg_types, np.ndarray)
+
+    class_profile['parameter_types'] = parameter_types
+
+    @classmethod
+    def export(cls, *args):
+        """Represent the operator as a string so that it can be exported to a file.
+
+        Parameters
+        ----------
+        args
+        Arbitrary arguments to be passed to the operator
+
+        Returns
+        -------
+        export_string: str
+        String representation of the sklearn class with its parameters in
+        the format:
+        SklearnClassName(param1="val1", param2=val2)
+        
+        """
+        op_arguments = []
+
+        if dep_op_list:
+            dep_op_arguments = {}
+
+        for arg_class, arg_value in zip(arg_types, args):
+            aname_split = arg_class.__name__.split('__')
+            if isinstance(arg_value, str):
+                arg_value = '\"{}\"'.format(arg_value)
+            if len(aname_split) == 2:  # simple parameter
+                op_arguments.append("{}={}".format(aname_split[-1], arg_value))
+            # Parameter of internal operator as a parameter in the
+            # operator, usually in Selector
+            else:
+                if aname_split[1] not in dep_op_arguments:
+                    dep_op_arguments[aname_split[1]] = []
+                dep_op_arguments[aname_split[1]].append("{}={}".format(aname_split[-1], arg_value))
+
+        tmp_op_args = []
+        if dep_op_list:
+            # To make sure the inital operators is the first parameter just
+            # for better persentation
+            for dep_op_pname, dep_op_str in dep_op_list.items():
+                arg_value = dep_op_str # a callable function, e.g scoring function
+                doptype = dep_op_type[dep_op_pname]
+                if _is_estimator(doptype):
+                        arg_value = "{}({})".format(dep_op_str, ", ".join(dep_op_arguments[dep_op_str]))
+                tmp_op_args.append("{}={}".format(dep_op_pname, arg_value))
+        op_arguments = tmp_op_args + op_arguments
+        return "{}({})".format(op_obj.__name__, ", ".join(op_arguments))
+
+    class_profile['export'] = export
+
+    op_classname = 'TPOT_{}'.format(op_str)
+    op_class = type(op_classname, (BaseClass,), class_profile)
+    op_class.__name__ = op_str
+    return op_class, arg_types
+
+
+def D3MWrapperClassFactory(pclass):
+    """
+    Generates a wrapper class for D3M primitives to make them behave
+    like standard sklearn estimators.
+
+    Parameters
+    ----------
+    pclass: Class
+       The class object for a D3M primitive.
+
+    Returns
+    -------
+    A newly minted class that is compliant with the sklearn estimator
+    API and delegates to the underlying D3M primitive.
+    """
+
+    config = {}
+
+    def __init__(self, **kwargs):
+        self._prim = pclass(**kwargs)
+    config['__init__'] = __init__
+
+    def fit(self, X, y):
+        self._prim.set_training_data(inputs=X, outputs=y)
+        self._prim.fit()
+    config['fit'] = fit
+
+    def transform(self, X):
+        return self._prim.produce(inputs=X)
+    config['transform'] = transform
+
+    def predict(self, X):
+        return self._prim.produce(inputs=X)
+    config['predict'] = predict
+
+    newname = 'AF_%s' % pclass.__name__
+    return type(newname, (pclass,), config)
+
+
+def _get_optype(obj):
+    if (issubclass(obj, ClassifierMixin) 
+        or issubclass(obj, RegressorMixin) 
+        or issubclass(obj, SupervisedLearnerPrimitiveBase)):
+        return "Classifier or Regressor"
+    else:
+        return "Preprocessor or Selector"
+
+
+def _is_estimator(optype):
+    if inspect.isclass(optype): 
+        return (issubclass(optype, BaseEstimator) 
+                or issubclass(optype, ClassifierMixin) 
+                or issubclass(optype, RegressorMixin) 
+                or issubclass(optype, TransformerMixin)
+                or issubclass(optype, SupervisedLearnerPrimitiveBase)
+                or issubclass(optype, TransformerPrimitiveBase))
