@@ -60,17 +60,17 @@ from sklearn.metrics.scorer import make_scorer, _BaseScorer
 from update_checker import update_check
 
 from ._version import __version__
-from .operator_utils import TPOTOperatorClassFactory, Operator, ARGType
+from .operator_utils import TPOTOperatorClassFactory, Operator, ARGType, D3MWrappedClasses
 from .export_utils import export_pipeline, expr_to_tree, generate_pipeline_code
 from .decorators import _pre_test
 from .builtins import CombineDFs, StackingEstimator
 
-from .config.classifier_light import classifier_config_dict_light
-from .config.regressor_light import regressor_config_dict_light
-from .config.classifier_mdr import tpot_mdr_classifier_config_dict
-from .config.regressor_mdr import tpot_mdr_regressor_config_dict
-from .config.regressor_sparse import regressor_config_sparse
-from .config.classifier_sparse import classifier_config_sparse
+#from .config.classifier_light import classifier_config_dict_light
+#from .config.regressor_light import regressor_config_dict_light
+#from .config.classifier_mdr import tpot_mdr_classifier_config_dict
+#from .config.regressor_mdr import tpot_mdr_regressor_config_dict
+#from .config.regressor_sparse import regressor_config_sparse
+#from .config.classifier_sparse import classifier_config_sparse
 
 from .metrics import SCORERS
 from .gp_types import Output_Array
@@ -476,19 +476,25 @@ class TPOTBase(BaseEstimator):
                 # return both an Output_Array (and thus be the root of the tree),
                 # and return a np.ndarray so they can exist elsewhere in the tree.
                 p_types = (operator.parameter_types()[0], Output_Array)
+#                print("Adding primitive", operator, *p_types)
                 self._pset.addPrimitive(operator, *p_types)
 
+#            print("Adding primitive", operator, *operator.parameter_types())
             self._pset.addPrimitive(operator, *operator.parameter_types())
 
             # Import required modules into local namespace so that pipelines
             # may be evaluated directly
             for key in sorted(operator.import_hash.keys()):
-                module_list = ', '.join(sorted(operator.import_hash[key]))
+                classes = sorted(operator.import_hash[key])
+                module_list = ', '.join(classes)
 
                 if key.startswith('tpot.'):
                     exec('from {} import {}'.format(key[4:], module_list))
+                # D3M wrapper classes live in operator_utils
                 else:
-                    exec('from {} import {}'.format(key, module_list))
+                    for class_key in classes:
+                        class_ = D3MWrappedClasses[class_key]
+                        globals()[class_key] = class_
 
                 for var in operator.import_hash[key]:
                     self.operators_context[var] = eval(var)
@@ -1555,6 +1561,7 @@ class TPOTBase(BaseEstimator):
         stack = [(0, type_)]
         while len(stack) != 0:
             depth, type_ = stack.pop()
+#            print(type_)
 
             # We've added a type_ parameter to the condition function
             if condition(height, depth, type_):

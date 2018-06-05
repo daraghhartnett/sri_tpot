@@ -458,6 +458,7 @@ def _wrapped_cross_val_score(sklearn_pipeline, features, target,
     groups: array-like {n_samples, }, optional
         Group labels for the samples used while splitting the dataset into train/test set
     """
+    print(sklearn_pipeline.steps)
     sample_weight_dict = set_sample_weight(sklearn_pipeline.steps, sample_weight)
 
     features, target, groups = indexable(features, target, groups)

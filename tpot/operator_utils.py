@@ -34,6 +34,8 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+D3MWrappedClasses = {}
+
 class Operator(object):
     """Base class for operators in TPOT."""
 
@@ -41,6 +43,10 @@ class Operator(object):
     import_hash = None
     sklearn_class = None
     arg_types = None
+
+
+class D3MWrapper(object):
+    pass
 
 
 class ARGType(object):
@@ -170,7 +176,11 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
     if not op_obj:
         return None, None
 
-    optype = _get_optype(obj_obj)
+    if _can_be_root(op_obj):
+        class_profile['root'] = True
+        optype = "Classifier or Regressor"
+    else:
+        optype = "Preprocessor or Selector"
 
     @classmethod
     def op_type(cls):
@@ -306,6 +316,7 @@ def D3MWrapperClassFactory(pclass):
     config = {}
 
     def __init__(self, **kwargs):
+        self._pclass = pclass
         self._prim = pclass(**kwargs)
     config['__init__'] = __init__
 
@@ -323,23 +334,33 @@ def D3MWrapperClassFactory(pclass):
     config['predict'] = predict
 
     newname = 'AF_%s' % pclass.__name__
-    return type(newname, (pclass,), config)
+    class_ = type(newname, (D3MWrapper,), config)
+    class_.pclass = pclass
+
+    D3MWrappedClasses[newname] = class_
+
+    return class_
 
 
-def _get_optype(obj):
-    if (issubclass(obj, ClassifierMixin) 
-        or issubclass(obj, RegressorMixin) 
-        or issubclass(obj, SupervisedLearnerPrimitiveBase)):
-        return "Classifier or Regressor"
+def _can_be_root(obj):
+    if issubclass(obj, D3MWrapper):
+        class_ = obj.pclass
     else:
-        return "Preprocessor or Selector"
+        class_ = obj
+    return (issubclass(class_, ClassifierMixin) 
+            or issubclass(class_, RegressorMixin) 
+            or issubclass(class_, SupervisedLearnerPrimitiveBase))
 
 
 def _is_estimator(optype):
     if inspect.isclass(optype): 
-        return (issubclass(optype, BaseEstimator) 
-                or issubclass(optype, ClassifierMixin) 
-                or issubclass(optype, RegressorMixin) 
-                or issubclass(optype, TransformerMixin)
-                or issubclass(optype, SupervisedLearnerPrimitiveBase)
-                or issubclass(optype, TransformerPrimitiveBase))
+        if issubclass(optype, D3MWrapper):
+            class_ = optype.pclass
+        else:
+            class_ = optype
+        return (issubclass(class_, BaseEstimator) 
+                or issubclass(class_, ClassifierMixin) 
+                or issubclass(class_, RegressorMixin) 
+                or issubclass(class_, TransformerMixin)
+                or issubclass(class_, SupervisedLearnerPrimitiveBase)
+                or issubclass(class_, TransformerPrimitiveBase))
