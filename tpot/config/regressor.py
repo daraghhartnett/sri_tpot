@@ -35,7 +35,7 @@ regressor_config_dict = {
 #        'tol': [1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
 #    },
 
-    'sklearn_wrap.SKExtraTreesRegressor': {
+    'd3m.primitives.sklearn_wrap.SKExtraTreesRegressor': {
         'n_estimators': [100],
         'max_features': np.arange(0.05, 1.01, 0.05),
         'min_samples_split': range(2, 21),
@@ -43,7 +43,7 @@ regressor_config_dict = {
         'bootstrap': [True, False]
     },
 
-    'sklearn_wrap.SKGradientBoostingRegressor': {
+    'd3m.primitives.sklearn_wrap.SKGradientBoostingRegressor': {
         'n_estimators': [100],
         'loss': ["ls", "lad", "huber", "quantile"],
         'learning_rate': [1e-3, 1e-2, 1e-1, 0.5, 1.],
@@ -55,20 +55,20 @@ regressor_config_dict = {
         'alpha': [0.75, 0.8, 0.85, 0.9, 0.95, 0.99]
     },
 
-    'sklearn_wrap.SKAdaBoostRegressor': {
+    'd3m.primitives.sklearn_wrap.SKAdaBoostRegressor': {
         'n_estimators': [100],
         'learning_rate': [1e-3, 1e-2, 1e-1, 0.5, 1.],
         'loss': ["linear", "square", "exponential"],
         'max_depth': range(1, 11)
     },
 
-    'sklearn_wrap.SKDecisionTreeRegressor': {
+    'd3m.primitives.sklearn_wrap.SKDecisionTreeRegressor': {
         'max_depth': range(1, 11),
         'min_samples_split': range(2, 21),
         'min_samples_leaf': range(1, 21)
     },
 
-    'sklearn_wrap.SKKNeighborsRegressor': {
+    'd3m.primitives.sklearn_wrap.SKKNeighborsRegressor': {
         'n_neighbors': range(1, 101),
         'weights': ["uniform", "distance"],
         'p': [1, 2]
@@ -79,7 +79,7 @@ regressor_config_dict = {
 #        'normalize': [True, False]
 #    },
 
-    'sklearn_wrap.SKLinearSVR': {
+    'd3m.primitives.sklearn_wrap.SKLinearSVR': {
         'loss': ["epsilon_insensitive", "squared_epsilon_insensitive"],
         'dual': [True, False],
         'tol': [1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
@@ -87,7 +87,7 @@ regressor_config_dict = {
         'epsilon': [1e-4, 1e-3, 1e-2, 1e-1, 1.]
     },
 
-    'sklearn_wrap.SKRandomForestRegressor': {
+    'd3m.primitives.sklearn_wrap.SKRandomForestRegressor': {
         'n_estimators': [100],
         'max_features': np.arange(0.05, 1.01, 0.05),
         'min_samples_split': range(2, 21),
@@ -115,11 +115,11 @@ regressor_config_dict = {
 #        'threshold': np.arange(0.0, 1.01, 0.05)
 #    },
 
-    'sklearn_wrap.SKFastICA': {
+    'd3m.primitives.sklearn_wrap.SKFastICA': {
         'tol': np.arange(0.0, 1.01, 0.05)
     },
 
-    'sklearn_wrap.SKFeatureAgglomeration': {
+    'd3m.primitives.sklearn_wrap.SKFeatureAgglomeration': {
         'linkage': ['ward', 'complete', 'average'],
         'affinity': ['euclidean', 'l1', 'l2', 'manhattan', 'cosine', 'precomputed']
     },
@@ -128,7 +128,7 @@ regressor_config_dict = {
 #    'sklearn.preprocessing.MaxAbsScaler': {
 #    },
 
-    'sklearn_wrap.SKMinMaxScaler': {
+    'd3m.primitives.sklearn_wrap.SKMinMaxScaler': {
     },
 
 # Not wrapped
@@ -136,24 +136,24 @@ regressor_config_dict = {
 #        'norm': ['l1', 'l2', 'max']
 #    },
 
-    'sklearn_wrap.SKNystroem': {
+    'd3m.primitives.sklearn_wrap.SKNystroem': {
         'kernel': ['rbf', 'cosine', 'chi2', 'laplacian', 'polynomial', 'poly', 'linear', 'additive_chi2', 'sigmoid'],
         'gamma': np.arange(0.0, 1.01, 0.05),
         'n_components': range(1, 11)
     },
 
-    'sklearn_wrap.SKPCA': {
+    'd3m.primitives.sklearn_wrap.SKPCA': {
         'svd_solver': ['randomized'],
         'iterated_power': range(1, 11)
     },
 
-    'sklearn_wrap.SKPolynomialFeatures': {
+    'd3m.primitives.sklearn_wrap.SKPolynomialFeatures': {
         'degree': [2],
         'include_bias': [False],
         'interaction_only': [False]
     },
 
-    'sklearn_wrap.SKRBFSampler': {
+    'd3m.primitives.sklearn_wrap.SKRBFSampler': {
         'gamma': np.arange(0.0, 1.01, 0.05)
     },
 
@@ -161,7 +161,7 @@ regressor_config_dict = {
 #    'sklearn.preprocessing.RobustScaler': {
 #    },
 
-    'sklearn_wrap.SKStandardScaler': {
+    'd3m.primitives.sklearn_wrap.SKStandardScaler': {
     },
 
     'tpot.builtins.ZeroCount': {
@@ -181,12 +181,9 @@ regressor_config_dict = {
 #        }
 #    },
 
-    'sklearn_wrap.SKSelectPercentile': {
-        'percentile': range(1, 100)
-# Not wrapped
-#        'score_func': {
-#            'sklearn.feature_selection.f_regression': None
-#        }
+    'd3m.primitives.sklearn_wrap.SKSelectPercentile': {
+        'percentile': range(1, 100),
+        'score_func': ['f_regression']
     }
 
 # Not wrapped

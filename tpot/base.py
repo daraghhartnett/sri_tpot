@@ -491,10 +491,12 @@ class TPOTBase(BaseEstimator):
                 if key.startswith('tpot.'):
                     exec('from {} import {}'.format(key[4:], module_list))
                 # D3M wrapper classes live in operator_utils
-                else:
+                elif key.startswith('d3m.'):
                     for class_key in classes:
                         class_ = D3MWrappedClasses[class_key]
                         globals()[class_key] = class_
+                else:
+                    exec('from {} import {}'.format(key, module_list))
 
                 for var in operator.import_hash[key]:
                     self.operators_context[var] = eval(var)
@@ -821,7 +823,8 @@ class TPOTBase(BaseEstimator):
                     import pickle
                     if (str(self._optimized_pipeline) in self.pareto_front_fitted_pipelines_.keys()):
                         bestModel = self.pareto_front_fitted_pipelines_[str(self._optimized_pipeline)]
-                        pickle.dump(bestModel, open(pickledModelPath, "wb"))
+                        with open(pickledModelPath, "wb") as fh:
+                            pickle.dump(bestModel, fh)
                         self._logger.info("Model has been pickled")
 
     def predict(self, features):

@@ -81,10 +81,14 @@ def source_decode(sourcecode):
         if sourcecode.startswith('tpot.'):
             exec('from {} import {}'.format(import_str[4:], op_str))
             op_obj = eval(op_str)
-        else:
-            exec('from d3m.primitives.{} import {}'.format(import_str, op_str))
+        elif sourcecode.startswith('d3m.primitives'):
+            exec('from {} import {}'.format(import_str, op_str))
             op_obj = D3MWrapperClassFactory(eval(op_str))
             op_str = op_obj.__name__
+        else:
+            exec('from {} import {}'.format(import_str, op_str))
+            op_obj = eval(op_str)
+            
             
     except ImportError:
         _logger.info('Warning: {} is not available and will not be used by TPOT.'.format(sourcecode))
@@ -198,8 +202,14 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
     
     arg_types = []
     for pname in sorted(opdict.keys()):
+        if not _supports_arg(op_obj, pname):
+            continue
         prange = opdict[pname]
         if not isinstance(prange, dict):
+            prange = [ v for v in prange if _supports_arg_setting(op_obj, pname, v) ]
+            if len(prange) == 0:
+                _logger("Warning: No valid values provided for {} of {}".format(pname, op_obj.__name__))
+                continue
             classname = '{}__{}'.format(op_str, pname)
             arg_types.append(ARGTypeClassFactory(classname, prange, ArgBaseClass))
         else:
@@ -313,12 +323,42 @@ def D3MWrapperClassFactory(pclass):
     API and delegates to the underlying D3M primitive.
     """
 
+    mdata = pclass.metadata.query()
+    hpclass = mdata['primitive_code']['class_type_arguments']['Hyperparams']
+    hpdefaults = hpclass.defaults()
+    family = mdata['primitive_family']
+
     config = {}
 
     def __init__(self, **kwargs):
         self._pclass = pclass
-        self._prim = pclass(**kwargs)
+        hpmods = {}
+        for key, val in kwargs.items():
+            if key in hpdefaults:
+                hpmods[key] = val
+            else:
+                _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
+        self._prim = pclass(hyperparams=hpclass(hpdefaults, **hpmods))
     config['__init__'] = __init__
+
+#    def __get_state__(self):
+#        return self.__dict__.copy()
+#    config['__get_state__'] = __get_state__
+
+#    def __set_state__(self, state):
+#        self.__dict__.update(state)
+#    config['__set_state__'] = __set_state__
+
+    # This is confusing: what sklearn calls params, d3m calls hyperparams
+    def get_params(self, deep=False):
+        return dict(self._prim.hyperparams)
+    config['get_params'] = get_params
+
+    # Note that this blows away the previous underlying primitive.
+    # Should be OK, since we only call this method before fitting.
+    def set_params(self, **params):
+        self._prim = pclass(hyperparams=hpclass(params))
+    config['set_params'] = set_params
 
     def fit(self, X, y):
         self._prim.set_training_data(inputs=X, outputs=y)
@@ -326,23 +366,56 @@ def D3MWrapperClassFactory(pclass):
     config['fit'] = fit
 
     def transform(self, X):
-        return self._prim.produce(inputs=X)
+        return self._prim.produce(inputs=X).value
     config['transform'] = transform
 
     def predict(self, X):
-        return self._prim.produce(inputs=X)
+        return self._prim.produce(inputs=X).value
     config['predict'] = predict
 
+    # Special method to enable TPOT to suppress unsupported arg primitives
+    @staticmethod
+    def takes_hyperparameter(hp):
+        return hp in hpdefaults
+    config['takes_hyperparameter'] = takes_hyperparameter
+
+    # Check whether the primitive accepts a value that TPOT thinks is valid
+    @staticmethod
+    def takes_hyperparameter_value(hp, value):
+        try:
+            hpclass.configuration[hp].validate(value)
+            return True
+        except:
+            _logger.info("Warning: Suppressing value of {} for {} of {}".format(value, hp, pclass.__name__))
+            return False
+    config['takes_hyperparameter_value'] = takes_hyperparameter_value
+
     newname = 'AF_%s' % pclass.__name__
-    class_ = type(newname, (D3MWrapper,), config)
+    parents = [D3MWrapper]
+    if family == 'REGRESSION':
+        parents.append(RegressorMixin)
+    if family == 'CLASSIFICATION':
+        parents.append(ClassifierMixin)
+    if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING':
+        parents.append(TransformerMixin)
+    class_ = type(newname, tuple(parents), config)
     class_.pclass = pclass
 
     D3MWrappedClasses[newname] = class_
+    # For pickling to work, we need to install the class globally
+    globals()[newname] = class_
 
     return class_
 
+#####################################################################
+# The functions below were added as part of the D3M compliance overhaul.
+#####################################################################
 
 def _can_be_root(obj):
+    """
+    'Root' in TPOT parlance means an operator class can serve as the 
+    final stage of a pipeline.
+    """
     if issubclass(obj, D3MWrapper):
         class_ = obj.pclass
     else:
@@ -364,3 +437,26 @@ def _is_estimator(optype):
                 or issubclass(class_, TransformerMixin)
                 or issubclass(class_, SupervisedLearnerPrimitiveBase)
                 or issubclass(class_, TransformerPrimitiveBase))
+
+
+def _supports_arg(obj, pname):
+    """
+    Safety check to see whether an argument specified in the config
+    file is actually supported.  Depending on how an sklearn class
+    was wrapped, some of its hyperparameters may not be exposed.
+    """
+    if issubclass(obj, D3MWrapper):
+        return obj.takes_hyperparameter(pname)
+    else:
+        return True
+
+
+def _supports_arg_setting(obj, pname, value):
+    """
+    Safety check to make sure an argument value that TPOT considers
+    valid is actually supported by a D3M primitive.
+    """
+    if issubclass(obj, D3MWrapper):
+        return obj.takes_hyperparameter_value(pname, value)
+    else:
+        return True
