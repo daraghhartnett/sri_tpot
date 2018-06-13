@@ -30,7 +30,9 @@ Instructions on getting started with PyPi are here:
 
 3. Build the distribution:
 
-    * See the packaging-projects instructions in 3.0 if you dont have setuptools, wheel or twine installed
+    * See the packaging-projects instructions in 3.0 if you dont have setuptools, wheel or twine installed before
+      you try to upload.
+    * Note that if a version already exists on PyPi you will need to roll the version in ./tpot/_version.py
     > python setup.py sdist bdist_wheel
     > ~/.local/bin/twine upload dist/*
 
