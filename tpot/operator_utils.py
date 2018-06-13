@@ -35,6 +35,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 D3MWrappedClasses = {}
+operator_paths = {}
 
 class Operator(object):
     """Base class for operators in TPOT."""
@@ -304,6 +305,7 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
     op_classname = 'TPOT_{}'.format(op_str)
     op_class = type(op_classname, (BaseClass,), class_profile)
     op_class.__name__ = op_str
+    operator_paths[op_str] = opsourse
     return op_class, arg_types
 
 
@@ -349,6 +351,7 @@ def D3MWrapperClassFactory(pclass):
 #        self.__dict__.update(state)
 #    config['__set_state__'] = __set_state__
 
+
     # This is confusing: what sklearn calls params, d3m calls hyperparams
     def get_params(self, deep=False):
         return dict(self._prim.hyperparams)
@@ -367,11 +370,16 @@ def D3MWrapperClassFactory(pclass):
 
     def transform(self, X):
         return self._prim.produce(inputs=X).value
-    config['transform'] = transform
+    if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING':
+        config['transform'] = transform
 
     def predict(self, X):
         return self._prim.produce(inputs=X).value
-    config['predict'] = predict
+    if family == 'CLASSIFICATION' or family == 'REGRESSION':
+        config['predict'] = predict
+
+    def get_internal_class(self):
+        return self._pclass
 
     # Special method to enable TPOT to suppress unsupported arg primitives
     @staticmethod
