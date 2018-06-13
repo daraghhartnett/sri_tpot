@@ -12,27 +12,27 @@ def calculate_version():
 package_version = calculate_version()
 
 setup(
-    name='TPOT',
+    name='SRITPOT',
     version=package_version,
     author='Randal S. Olson',
     author_email='rso@randalolson.com',
     packages=find_packages(),
-    url='https://github.com/EpistasisLab/tpot',
+    url='https://github.com/daraghhartnett/tpot',
     license='GNU/LGPLv3',
     entry_points={'console_scripts': ['tpot=tpot:main', ]},
-    description=('Tree-based Pipeline Optimization Tool'),
+    description=('SRI Fork of Tree-based Pipeline Optimization Tool'),
     long_description='''
+The SRI International fork of the TPOT repo witch some modifications to allow us to get it to consider
+different primitives and to serialize pipelines instead of return them.
 A Python tool that automatically creates and optimizes machine learning pipelines using genetic programming.
 
 Contact
 =============
 If you have any questions or comments about TPOT, please feel free to contact me via:
 
-E-mail: rso@randalolson.com
+E-mail: daragh.hartnett@sri.com (rso@randalolson.com for the original TPOT code base.)
 
-or Twitter: https://twitter.com/randal_olson
-
-This project is hosted at https://github.com/EpistasisLab/tpot
+This project is hosted at https://github.com/daraghhartnett/tpot
 ''',
     zip_safe=True,
     install_requires=['numpy>=1.12.1',
