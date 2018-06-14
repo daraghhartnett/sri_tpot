@@ -42,4 +42,5 @@ Instructions on getting started with PyPi are here:
    > pip install SRITPOT
 
    * or the following if you already have it installed and want the latest version:
+   > pip uninstall SRITPOT
    > pip install --no-cache-dir --upgrade SRITPOT
