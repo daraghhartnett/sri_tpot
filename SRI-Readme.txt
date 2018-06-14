@@ -30,10 +30,17 @@ Instructions on getting started with PyPi are here:
 
 3. Build the distribution:
 
-    * See the packaging-projects instructions in 3.0 if you dont have setuptools, wheel or twine installed
+    * See the packaging-projects instructions in 3.0 if you dont have setuptools, wheel or twine installed before
+      you try to upload.
+    * Note that if a version already exists on PyPi you will need to roll the version in ./tpot/_version.py
+      and the log message in base.py before you try to upload.
     > python setup.py sdist bdist_wheel
     > ~/.local/bin/twine upload dist/*
 
 4. To install the SRI fork of TPOT do the following:
 
    > pip install SRITPOT
+
+   * or the following if you already have it installed and want the latest version:
+   > pip uninstall SRITPOT
+   > pip install --no-cache-dir --upgrade SRITPOT
