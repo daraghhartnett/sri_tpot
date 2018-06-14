@@ -34,8 +34,39 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-D3MWrappedClasses = {}
-operator_paths = {}
+class D3MWrapper(object):
+    pass
+
+
+class D3MWrappedOperators(object):
+
+    wrapped_classes = {}
+    class_paths = {}
+    path_classes = {}
+    
+    @classmethod
+    def add_class(self, oclass, opath):
+        cname = oclass.__name__
+        self.wrapped_classes[cname] = oclass
+        self.class_paths[cname] = opath
+        self.path_classes[opath] = oclass
+
+    @classmethod
+    def get_class_from_name(self, cname):
+        return self.wrapped_classes[cname]
+
+    @classmethod
+    def get_class_from_path(self, cname):
+        return self.path_classes[cname]
+
+    @classmethod
+    def get_path(self, cname):
+        return self.class_paths[cname]
+
+    @classmethod
+    def have_class(self, cname):
+        return cname in self.wrapped_classes
+
 
 class Operator(object):
     """Base class for operators in TPOT."""
@@ -44,10 +75,6 @@ class Operator(object):
     import_hash = None
     sklearn_class = None
     arg_types = None
-
-
-class D3MWrapper(object):
-    pass
 
 
 class ARGType(object):
@@ -84,7 +111,7 @@ def source_decode(sourcecode):
             op_obj = eval(op_str)
         elif sourcecode.startswith('d3m.primitives'):
             exec('from {} import {}'.format(import_str, op_str))
-            op_obj = D3MWrapperClassFactory(eval(op_str))
+            op_obj = D3MWrapperClassFactory(eval(op_str), sourcecode)
             op_str = op_obj.__name__
         else:
             exec('from {} import {}'.format(import_str, op_str))
@@ -305,11 +332,10 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
     op_classname = 'TPOT_{}'.format(op_str)
     op_class = type(op_classname, (BaseClass,), class_profile)
     op_class.__name__ = op_str
-    operator_paths[op_str] = opsourse
     return op_class, arg_types
 
 
-def D3MWrapperClassFactory(pclass):
+def D3MWrapperClassFactory(pclass, ppath):
     """
     Generates a wrapper class for D3M primitives to make them behave
     like standard sklearn estimators.
@@ -409,7 +435,7 @@ def D3MWrapperClassFactory(pclass):
     class_ = type(newname, tuple(parents), config)
     class_.pclass = pclass
 
-    D3MWrappedClasses[newname] = class_
+    D3MWrappedOperators.add_class(class_, ppath)
     # For pickling to work, we need to install the class globally
     globals()[newname] = class_
 

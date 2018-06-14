@@ -164,10 +164,10 @@ regressor_config_dict = {
     'd3m.primitives.sklearn_wrap.SKStandardScaler': {
     },
 
-    'tpot.builtins.ZeroCount': {
+    'd3m.primitives.pslgraph.ZeroCount': {
     },
 
-    'tpot.builtins.OneHotEncoder': {
+    'd3m.primitives.sklearn_wrap.SKOneHotEncoder': {
         'minimum_fraction': [0.05, 0.1, 0.15, 0.2, 0.25],
         'sparse': [False]
     },

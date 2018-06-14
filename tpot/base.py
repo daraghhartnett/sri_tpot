@@ -60,7 +60,7 @@ from sklearn.metrics.scorer import make_scorer, _BaseScorer
 from update_checker import update_check
 
 from ._version import __version__
-from .operator_utils import TPOTOperatorClassFactory, Operator, ARGType, D3MWrappedClasses
+from .operator_utils import TPOTOperatorClassFactory, Operator, ARGType, D3MWrappedOperators
 from .export_utils import export_pipeline, expr_to_tree, generate_pipeline_code
 from .decorators import _pre_test
 from .builtins import CombineDFs, StackingEstimator
@@ -331,7 +331,7 @@ class TPOTBase(BaseEstimator):
         self.operators_context = {
             'make_pipeline': make_pipeline,
             'make_union': make_union,
-            'StackingEstimator': StackingEstimator,
+#            'StackingEstimator': StackingEstimator,
             'FunctionTransformer': FunctionTransformer,
             'copy': copy
         }
@@ -493,13 +493,16 @@ class TPOTBase(BaseEstimator):
                 # D3M wrapper classes live in operator_utils
                 elif key.startswith('d3m.'):
                     for class_key in classes:
-                        class_ = D3MWrappedClasses[class_key]
+                        class_ = D3MWrappedOperators.get_class_from_name(class_key)
                         globals()[class_key] = class_
                 else:
                     exec('from {} import {}'.format(key, module_list))
 
                 for var in operator.import_hash[key]:
                     self.operators_context[var] = eval(var)
+
+                stacker = D3MWrappedOperators.get_class_from_name('AF_StackingOperator')
+                self.operators_context['AF_StackingOperator'] = stacker
 
         self._pset.addPrimitive(CombineDFs(), [np.ndarray, np.ndarray], np.ndarray)
 
@@ -1049,6 +1052,10 @@ class TPOTBase(BaseEstimator):
         -------
         array-like {n_samples, n_features}
         """
+        # Suppress built-in imputation
+        raise NotImplementedError()
+        return None
+
         if self.verbosity > 1:
             self._logger.info('Imputing missing values in feature set')
 

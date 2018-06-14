@@ -20,7 +20,10 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 """
 
 import deap
+from d3m.primitives.pslgraph import StackingOperator
+from tpot.operator_utils import D3MWrapperClassFactory, D3MWrappedOperators
 
+so_wrapping_class = D3MWrapperClassFactory(StackingOperator, 'd3m.primitives.pslgraph.StackingOperator')
 
 def get_by_name(opname, operators):
     """Return operator class instance by name.
@@ -38,10 +41,12 @@ def get_by_name(opname, operators):
         An operator class
 
     """
+    assert D3MWrappedOperators.have_class(opname)
+
     ret_op_classes = [op for op in operators if op.__name__ == opname]
 
     if len(ret_op_classes) == 0:
-        raise TypeError('Cannot found operator {} in operator dictionary'.format(opname))
+        raise TypeError('Cannot find operator {} in operator dictionary'.format(opname))
     elif len(ret_op_classes) > 1:
         raise ValueError(
             'Found duplicate operators {} in operator dictionary. Please check '
@@ -224,8 +229,8 @@ def _starting_imports(operators, operators_used):
     if num_op_root > 1:
         return {
             'sklearn.model_selection':  ['train_test_split'],
-            'sklearn.pipeline':         ['make_pipeline', 'make_union'],
-            'tpot.builtins':  ['StackingEstimator'],
+            'sklearn.pipeline':         ['make_pipeline', 'make_union']
+#            'tpot.builtins':  ['StackingEstimator'],
         }
     elif num_op > 1:
         return {
@@ -273,6 +278,7 @@ def generate_pipeline_code(pipeline_tree, operators):
 
     """
     steps = _process_operator(pipeline_tree, operators)
+#    print(steps)
     pipeline_text = "make_pipeline(\n{STEPS}\n)".format(STEPS=_indent(",\n".join(steps), 4))
     return pipeline_text
 
@@ -323,8 +329,8 @@ def _process_operator(operator, operators, depth=0):
         # classification probabilities for classification if available
         if tpot_op.root and depth > 0:
             steps.append(
-                "StackingEstimator(estimator={})".
-                format(tpot_op.export(*args))
+                "{}(estimator={})".
+                format(so_wrapping_class.__name__, tpot_op.export(*args))
             )
         else:
             steps.append(tpot_op.export(*args))
@@ -360,14 +366,16 @@ def _combine_dfs(left, right, operators):
             tpot_op = get_by_name(branch[0], operators)
 
             if tpot_op.root:
-                return "StackingEstimator(estimator={})".format(_process_operator(branch, operators)[0])
+                return "{}(estimator={}".format(so_wrapping_class.__name__, _process_operator(branch, operators)[0])
+#                return "StackingEstimator(estimator={})".format(_process_operator(branch, operators)[0])
             else:
                 return _process_operator(branch, operators)[0]
         else:  # We're going to have to make a pipeline
             tpot_op = get_by_name(branch[0], operators)
 
             if tpot_op.root:
-                return "StackingEstimator(estimator={})".format(generate_pipeline_code(branch, operators))
+                return "{}(estimator={}".format(so_wrapping_class.__name__, generate_pipeline_code(branch, operators))
+#                return "StackingEstimator(estimator={})".format(generate_pipeline_code(branch, operators))
             else:
                 return generate_pipeline_code(branch, operators)
 
