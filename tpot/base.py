@@ -330,9 +330,9 @@ class TPOTBase(BaseEstimator):
         self.verbosity = verbosity
         self.operators_context = {
             'make_pipeline': make_pipeline,
-            'make_union': make_union,
+#            'make_union': make_union,
 #            'StackingEstimator': StackingEstimator,
-            'FunctionTransformer': FunctionTransformer,
+#            'FunctionTransformer': FunctionTransformer,
             'copy': copy
         }
         self._pbar = None
@@ -942,6 +942,16 @@ class TPOTBase(BaseEstimator):
 
         return self
 
+    def simplify_string(self, dirty_string):
+        # There are many parameter prefixes in the pipeline strings, used solely for
+        # making the terminal name unique, eg. LinearSVC__.
+        parameter_prefixes = [(m.start(), m.end()) for m in re.finditer(', [\w]+__', dirty_string)]
+        # We handle them in reverse so we do not mess up indices
+        pretty = dirty_string
+        for (start, end) in reversed(parameter_prefixes):
+            pretty = pretty[:start + 2] + pretty[end:]
+        return pretty
+
     def clean_pipeline_string(self, individual):
         """Provide a string of the individual without the parameter prefixes.
 
@@ -956,15 +966,7 @@ class TPOTBase(BaseEstimator):
 
         """
         dirty_string = str(individual)
-        # There are many parameter prefixes in the pipeline strings, used solely for
-        # making the terminal name unique, eg. LinearSVC__.
-        parameter_prefixes = [(m.start(), m.end()) for m in re.finditer(', [\w]+__', dirty_string)]
-        # We handle them in reverse so we do not mess up indices
-        pretty = dirty_string
-        for (start, end) in reversed(parameter_prefixes):
-            pretty = pretty[:start + 2] + pretty[end:]
-
-        return pretty
+        return self.simplify_string(dirty_string)
 
     def _check_periodic_pipeline(self):
         """If enough time has passed, save a new optimized pipeline.
@@ -1212,7 +1214,8 @@ class TPOTBase(BaseEstimator):
         result_score_list = []
         # Don't use parallelization if n_jobs==1
         if self.n_jobs == 1:
-            for sklearn_pipeline in sklearn_pipeline_list:
+            for i, sklearn_pipeline in enumerate(sklearn_pipeline_list):
+                print(self.simplify_string(eval_individuals_str[i]))
                 self._stop_by_max_time_mins()
                 val = partial_wrapped_cross_val_score(sklearn_pipeline=sklearn_pipeline)
                 result_score_list = self._update_val(val, result_score_list)

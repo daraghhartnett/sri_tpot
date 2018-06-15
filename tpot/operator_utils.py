@@ -360,8 +360,11 @@ def D3MWrapperClassFactory(pclass, ppath):
 
     def __init__(self, **kwargs):
         self._pclass = pclass
+        self._params = kwargs
         hpmods = {}
         for key, val in kwargs.items():
+            if isinstance(val, D3MWrapper):
+                val = val.get_internal_primitive()
             if key in hpdefaults:
                 hpmods[key] = val
             else:
@@ -380,7 +383,7 @@ def D3MWrapperClassFactory(pclass, ppath):
 
     # This is confusing: what sklearn calls params, d3m calls hyperparams
     def get_params(self, deep=False):
-        return dict(self._prim.hyperparams)
+        return self._params
     config['get_params'] = get_params
 
     # Note that this blows away the previous underlying primitive.
@@ -392,11 +395,12 @@ def D3MWrapperClassFactory(pclass, ppath):
     def fit(self, X, y):
         self._prim.set_training_data(inputs=X, outputs=y)
         self._prim.fit()
+        return self
     config['fit'] = fit
 
     def transform(self, X):
         return self._prim.produce(inputs=X).value
-    if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING':
+    if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING' or family == 'DATA_TRANSFORMATION':
         config['transform'] = transform
 
     def predict(self, X):
@@ -406,6 +410,10 @@ def D3MWrapperClassFactory(pclass, ppath):
 
     def get_internal_class(self):
         return self._pclass
+
+    def get_internal_primitive(self):
+        return self._prim
+    config['get_internal_primitive'] = get_internal_primitive
 
     # Special method to enable TPOT to suppress unsupported arg primitives
     @staticmethod
@@ -430,7 +438,7 @@ def D3MWrapperClassFactory(pclass, ppath):
         parents.append(RegressorMixin)
     if family == 'CLASSIFICATION':
         parents.append(ClassifierMixin)
-    if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING':
+    if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING' or family == 'DATA_TRANSFORMATION':
         parents.append(TransformerMixin)
     class_ = type(newname, tuple(parents), config)
     class_.pclass = pclass
@@ -455,7 +463,7 @@ def _can_be_root(obj):
     else:
         class_ = obj
     return (issubclass(class_, ClassifierMixin) 
-            or issubclass(class_, RegressorMixin) 
+            or issubclass(class_, RegressorMixin)
             or issubclass(class_, SupervisedLearnerPrimitiveBase))
 
 
@@ -468,7 +476,7 @@ def _is_estimator(optype):
         return (issubclass(class_, BaseEstimator) 
                 or issubclass(class_, ClassifierMixin) 
                 or issubclass(class_, RegressorMixin) 
-                or issubclass(class_, TransformerMixin)
+                or issubclass(class_, TransformerMixin)            
                 or issubclass(class_, SupervisedLearnerPrimitiveBase)
                 or issubclass(class_, TransformerPrimitiveBase))
 
