@@ -164,7 +164,7 @@ regressor_config_dict = {
     'd3m.primitives.sklearn_wrap.SKStandardScaler': {
     },
 
-    'd3m.primitives.pslgraph.ZeroCount': {
+    'd3m.primitives.sri.tpot.ZeroCount': {
     },
 
     'd3m.primitives.sklearn_wrap.SKOneHotEncoder': {

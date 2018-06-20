@@ -164,7 +164,7 @@ classifier_config_dict = {
     'd3m.primitives.sklearn_wrap.SKStandardScaler': {
     },
 
-    'd3m.primitives.psgraph.ZeroCount': {
+    'd3m.primitives.sri.tpot.ZeroCount': {
     },
 
     'd3m.primitives.sklearn_wrap.SKOneHotEncoder': {
