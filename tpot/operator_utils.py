@@ -329,6 +329,44 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
 
     class_profile['export'] = export
 
+    @classmethod
+    def instance(cls, *args):
+        """
+        Create an instance of the wrapped class, parameterized with the indicated args.
+        """
+        op_arguments = []
+
+        if dep_op_list:
+            dep_op_arguments = {}
+
+        for arg_class, arg_value in zip(arg_types, args):
+            aname_split = arg_class.__name__.split('__')
+            param = aname_split[1]
+            if len(aname_split) == 2:  # simple parameter
+                op_arguments.append((param, arg_value))
+            # Parameter of internal operator as a parameter in the
+            # operator, usually in Selector
+            else:
+                if param not in dep_op_arguments:
+                    dep_op_arguments[param] = []
+                dep_op_arguments[param].append((aname_split[-1], arg_value))
+
+        tmp_op_args = []
+        if dep_op_list:
+            # To make sure the inital operators is the first parameter just
+            # for better persentation
+            for dep_op_pname, dep_op_str in dep_op_list.items():
+                arg_value = dep_op_str # a callable function, e.g scoring function
+                doptype = dep_op_type[dep_op_pname]
+                if _is_estimator(doptype):
+                    depargs = dict(dep_op_arguments[dep_op_str])
+                    arg_value = dep_op_str(**depargs)
+                tmp_op_args.append((dep_op_pname, arg_value))
+        op_arguments = dict(tmp_op_args + op_arguments)
+        return op_obj(**op_arguments)
+
+    class_profile['instance'] = instance
+
     op_classname = 'TPOT_{}'.format(op_str)
     op_class = type(op_classname, (BaseClass,), class_profile)
     op_class.__name__ = op_str
@@ -453,32 +491,32 @@ def D3MWrapperClassFactory(pclass, ppath):
 # The functions below were added as part of the D3M compliance overhaul.
 #####################################################################
 
-def _can_be_root(obj):
+def _can_be_root(optype):
     """
     'Root' in TPOT parlance means an operator class can serve as the 
     final stage of a pipeline.
     """
-    if issubclass(obj, D3MWrapper):
-        class_ = obj.pclass
-    else:
-        class_ = obj
-    return (issubclass(class_, ClassifierMixin) 
-            or issubclass(class_, RegressorMixin)
-            or issubclass(class_, SupervisedLearnerPrimitiveBase))
+#    if issubclass(obj, D3MWrapper):
+#        class_ = obj.pclass
+#    else:
+#        class_ = obj
+    return (issubclass(optype, ClassifierMixin) 
+            or issubclass(optype, RegressorMixin))
+#            or issubclass(class_, SupervisedLearnerPrimitiveBase))
 
 
 def _is_estimator(optype):
     if inspect.isclass(optype): 
-        if issubclass(optype, D3MWrapper):
-            class_ = optype.pclass
-        else:
-            class_ = optype
-        return (issubclass(class_, BaseEstimator) 
-                or issubclass(class_, ClassifierMixin) 
-                or issubclass(class_, RegressorMixin) 
-                or issubclass(class_, TransformerMixin)            
-                or issubclass(class_, SupervisedLearnerPrimitiveBase)
-                or issubclass(class_, TransformerPrimitiveBase))
+#        if issubclass(optype, D3MWrapper):
+#            class_ = optype.pclass
+#        else:
+#            class_ = optype
+        return (issubclass(optype, BaseEstimator) 
+                or issubclass(optype, ClassifierMixin) 
+                or issubclass(optype, RegressorMixin) 
+                or issubclass(optype, TransformerMixin))
+#                or issubclass(class_, SupervisedLearnerPrimitiveBase)
+#                or issubclass(class_, TransformerPrimitiveBase))
 
 
 def _supports_arg(obj, pname):

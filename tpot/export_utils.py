@@ -24,7 +24,7 @@ import deap
 from sri.tpot.stacking import StackingOperator
 from tpot.operator_utils import D3MWrapperClassFactory, D3MWrappedOperators
 
-so_wrapping_class = D3MWrapperClassFactory(StackingOperator, 'd3m.primitives.pslgraph.StackingOperator')
+so_wrapping_class = D3MWrapperClassFactory(StackingOperator, 'd3m.primitives.sri.tpot.StackingOperator')
 
 def get_by_name(opname, operators):
     """Return operator class instance by name.
@@ -278,7 +278,7 @@ def generate_pipeline_code(pipeline_tree, operators):
     Source code for the sklearn pipeline
 
     """
-    steps = _process_operator(pipeline_tree, operators)
+    steps = interpret_tree(pipeline_tree, operators)
 #    print(steps)
     pipeline_text = "make_pipeline(\n{STEPS}\n)".format(STEPS=_indent(",\n".join(steps), 4))
     return pipeline_text
@@ -297,7 +297,7 @@ def generate_export_pipeline_code(pipeline_tree, operators):
     Source code for the sklearn pipeline
 
     """
-    steps = _process_operator(pipeline_tree, operators)
+    steps = interpret_tree(pipeline_tree, operators)
     # number of steps in a pipeline
     num_step = len(steps)
     if num_step > 1:
@@ -309,7 +309,7 @@ def generate_export_pipeline_code(pipeline_tree, operators):
     return pipeline_text
 
 
-def _process_operator(operator, operators, depth=0):
+def interpret_tree(operator, operators, depth=0):
     steps = []
     op_name = operator[0]
 
@@ -322,7 +322,7 @@ def _process_operator(operator, operators, depth=0):
         tpot_op = get_by_name(op_name, operators)
 
         if input_name != 'input_matrix':
-            steps.extend(_process_operator(input_name, operators, depth + 1))
+            steps.extend(interpret_tree(input_name, operators, depth + 1))
 
         # If the step is an estimator and is not the last step then we must
         # add its guess as synthetic feature(s)
@@ -367,10 +367,10 @@ def _combine_dfs(left, right, operators):
             tpot_op = get_by_name(branch[0], operators)
 
             if tpot_op.root:
-                return "{}(estimator={}".format(so_wrapping_class.__name__, _process_operator(branch, operators)[0])
-#                return "StackingEstimator(estimator={})".format(_process_operator(branch, operators)[0])
+                return "{}(estimator={}".format(so_wrapping_class.__name__, interpret_tree(branch, operators)[0])
+#                return "StackingEstimator(estimator={})".format(interpret_tree(branch, operators)[0])
             else:
-                return _process_operator(branch, operators)[0]
+                return interpret_tree(branch, operators)[0]
         else:  # We're going to have to make a pipeline
             tpot_op = get_by_name(branch[0], operators)
 
