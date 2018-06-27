@@ -28,6 +28,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, Transfo
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 import d3m.index
+from d3m.container import DataFrame
 import tpot.d3mgrid as d3mgrid
 import inspect
 
@@ -478,18 +479,18 @@ def D3MWrapperClassFactory(pclass, ppath):
     config['set_params'] = set_params
 
     def fit(self, X, y):
-        self._prim.set_training_data(inputs=X, outputs=y)
+        self._prim.set_training_data(inputs=DataFrame(X, generate_metadata=False), outputs=y)
         self._prim.fit()
         return self
     config['fit'] = fit
 
     def transform(self, X):
-        return self._prim.produce(inputs=X).value
+        return self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
     if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING' or family == 'DATA_TRANSFORMATION':
         config['transform'] = transform
 
     def predict(self, X):
-        return self._prim.produce(inputs=X).value
+        return self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
     if family == 'CLASSIFICATION' or family == 'REGRESSION':
         config['predict'] = predict
 

@@ -23,6 +23,7 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 """
 
+import traceback
 import logging
 import numpy as np
 from deap import tools, gp
@@ -491,5 +492,5 @@ def _wrapped_cross_val_score(sklearn_pipeline, features, target,
     except TimeoutException:
         return "Timeout"
     except Exception as e:
-        _logger.info("Exception in pipeline evaluation: %s" % e)
+        _logger.info(traceback.format_exc())
         return -float('inf')
