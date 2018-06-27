@@ -23,6 +23,7 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 """
 
+import logging
 import numpy as np
 from deap import tools, gp
 from inspect import isclass
@@ -36,6 +37,9 @@ from sklearn.base import clone, is_classifier
 from collections import defaultdict
 import warnings
 from stopit import threading_timeoutable, TimeoutException
+
+
+_logger = logging.getLogger(__name__)
 
 
 def pick_two_individuals_eligible_for_crossover(population):
@@ -312,8 +316,6 @@ def harvest_and_print_memory_usage():
     import resource
     import logging
 
-    # init logger
-    _logger = logging.getLogger(__name__)
 
     process = psutil.Process(os.getpid())
     _logger.info(process.memory_info())
@@ -489,4 +491,5 @@ def _wrapped_cross_val_score(sklearn_pipeline, features, target,
     except TimeoutException:
         return "Timeout"
     except Exception as e:
+        _logger.info("Exception in pipeline evaluation: %s" % e)
         return -float('inf')

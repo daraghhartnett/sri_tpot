@@ -113,7 +113,8 @@ class TPOTBase(BaseEstimator):
                  warm_start=False, memory=None,
                  periodic_checkpoint_folder=None, early_stop=None,
                  verbosity=0, disable_update_check=False,
-                 update_callback=None, generation_callback=None):
+                 update_callback=None, generation_callback=None, 
+                 operator_advice="strict"):
         """Set up the genetic programming algorithm for pipeline optimization.
 
         Parameters
@@ -244,6 +245,12 @@ class TPOTBase(BaseEstimator):
         update_callback: callable(pipeline, score), optional (default: None)
             Function to be called for each pipeline in the front at the
             end of each epoch.
+        operator_advice: str or None
+            Governs the extent to which TPOT respects the terminal parameters specified in the
+            configuration file, taking one of the following values:
+                - strict (default): only consider values specified in config
+                - query: only consider specified hyperarameters, but infer appropriate values
+                - discover: infer both hyperparameters and useful settings
 
         Returns
         -------
@@ -283,6 +290,7 @@ class TPOTBase(BaseEstimator):
         self._memory = None # initial Memory setting for sklearn pipeline
         self.update_callback = update_callback
         self.generation_callback = generation_callback
+        self.operator_advice = operator_advice
 
         # dont save periodic pipelines more often than this
         self._output_best_pipeline_period_seconds = 30
@@ -307,7 +315,8 @@ class TPOTBase(BaseEstimator):
                 key,
                 self.config_dict[key],
                 BaseClass=Operator,
-                ArgBaseClass=ARGType
+                ArgBaseClass=ARGType,
+                operator_advice=self.operator_advice
             )
             if op_class:
                 self.operators.append(op_class)

@@ -28,6 +28,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, Transfo
 from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 import d3m.index
+import tpot.d3mgrid as d3mgrid
 import inspect
 
 import logging
@@ -174,7 +175,7 @@ def ARGTypeClassFactory(classname, prange, BaseClass=ARGType):
     return type(classname, (BaseClass,), {'values': prange})
 
 
-def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=ARGType):
+def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=ARGType, operator_advice="strict"):
     """Dynamically create operator class.
 
     Parameters
@@ -191,6 +192,8 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
         inherited BaseClass for operator
     ArgBaseClass: Class
         inherited BaseClass for parameter
+    operator_advice: string
+        controls how terminals are generated (see base.py for more info)
 
     Returns
     -------
@@ -227,17 +230,14 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
     class_profile['sklearn_class'] = op_obj
     import_hash = {}
     import_hash[import_str] = [op_str]
-    
-    arg_types = []
-    for pname in sorted(opdict.keys()):
-        if not _supports_arg(op_obj, pname):
-            continue
-        prange = opdict[pname]
+
+    def _make_arg_types(pname, prange):
+        arg_types = []
         if not isinstance(prange, dict):
             prange = [ v for v in prange if _supports_arg_setting(op_obj, pname, v) ]
             if len(prange) == 0:
                 _logger("Warning: No valid values provided for {} of {}".format(pname, op_obj.__name__))
-                continue
+                return None
             classname = '{}__{}'.format(op_str, pname)
             arg_types.append(ARGTypeClassFactory(classname, prange, ArgBaseClass))
         else:
@@ -254,6 +254,53 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
                         dprange = dval[dpname]
                         classname = '{}__{}__{}'.format(op_str, dep_op_str, dpname)
                         arg_types.append(ARGTypeClassFactory(classname, dprange, ArgBaseClass))
+        return arg_types
+
+    def _discover_arg_values(hpname):
+        pclass = op_obj.get_internal_class()
+        mdata = pclass.metadata.query()
+        hpsclass = mdata['primitive_code']['class_type_arguments']['Hyperparams']
+        hpclass = hpsclass.configuration[hpname]
+        print("discover_arg_values: %s of %s" % (hpname, pclass))
+        return d3mgrid.grid(hpclass)
+
+    def _discover_arg_types():
+        arg_types = []
+        pclass = op_obj.get_internal_class()
+        mdata = pclass.metadata.query()
+        hpsclass = mdata['primitive_code']['class_type_arguments']['Hyperparams']
+        for pname, hp in hpclass.configuration.items():
+            prange = _discover_arg_values(pname)
+            if prange is None:
+                continue
+            parg_types = _make_arg_types(pname, prange)
+            if parg_types is None:
+                continue
+            arg_types.extend(parg_types)
+        return arg_types
+
+    def _read_arg_types(strict):
+        arg_types = []
+        for pname in sorted(opdict.keys()):
+            if not _supports_arg(op_obj, pname):
+                continue
+            if strict:
+                prange = opdict[pname]
+            else:
+                prange = _discover_arg_values(pname)
+                print("discover_arg_values: %s" % prange)
+            if prange is None:
+                continue
+            parg_types = _make_arg_types(pname, prange)
+            if parg_types is None:
+                continue
+            arg_types.extend(parg_types)
+        return arg_types
+
+    if operator_advice == "discover":
+        arg_types = _discover_arg_types()
+    else:
+        arg_types = _read_arg_types(operator_advice=="strict")
 
     class_profile['arg_types'] = tuple(arg_types)
     class_profile['import_hash'] = import_hash
@@ -447,7 +494,8 @@ def D3MWrapperClassFactory(pclass, ppath):
         config['predict'] = predict
 
     def get_internal_class(self):
-        return self._pclass
+        return pclass
+    config['get_internal_class'] = classmethod(get_internal_class)
 
     def get_internal_primitive(self):
         return self._prim
