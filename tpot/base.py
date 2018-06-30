@@ -1224,10 +1224,11 @@ class TPOTBase(BaseEstimator):
         # Don't use parallelization if n_jobs==1
         if self.n_jobs == 1:
 #            import pickle
-#            ppln = sklearn_pipeline_list[0]
-#            pickled = pickle.dumps(ppln)
             for i, sklearn_pipeline in enumerate(sklearn_pipeline_list):
                 print(self.simplify_string(eval_individuals_str[i]))
+                # DEBUG
+#                pickled = pickle.dumps(sklearn_pipeline)
+#                unpickled = pickle.loads(pickled)
                 self._stop_by_max_time_mins()
                 val = partial_wrapped_cross_val_score(sklearn_pipeline=sklearn_pipeline)
                 result_score_list = self._update_val(val, result_score_list)

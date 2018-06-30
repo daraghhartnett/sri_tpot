@@ -444,18 +444,23 @@ def D3MWrapperClassFactory(pclass, ppath):
 
     config = {}
 
-    def __init__(self, **kwargs):
-        self._pclass = pclass
-        self._params = kwargs
-        self._fitted = False
+    def _get_hpmods(self, params):
         hpmods = {}
-        for key, val in kwargs.items():
+        for key, val in params.items():
             if isinstance(val, D3MWrapper):
                 val = val.get_internal_primitive()
             if key in hpdefaults:
                 hpmods[key] = val
             else:
                 _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
+        return hpmods
+    config['_get_hpmods'] = _get_hpmods
+
+    def __init__(self, **kwargs):
+        self._pclass = pclass
+        self._params = kwargs
+        self._fitted = False
+        hpmods = self._get_hpmods(kwargs)
         self._prim = pclass(hyperparams=hpclass(hpdefaults, **hpmods))
     config['__init__'] = __init__
 
@@ -468,7 +473,8 @@ def D3MWrapperClassFactory(pclass, ppath):
     def __set_state__(self, state):
         self.__dict__.update(state)
         if self._prim is None:
-            self._prim = self._pclass(hyperparams=hpclass(hpdefaults, **self._params))
+            hpmods = self._get_hpmods(self._params)
+            self._prim = self._pclass(hyperparams=hpclass(hpdefaults, **hpmods))
     config['__setstate__'] = __set_state__
 
 #    def __get_state__(self):
