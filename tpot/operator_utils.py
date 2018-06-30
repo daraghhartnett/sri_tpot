@@ -447,6 +447,7 @@ def D3MWrapperClassFactory(pclass, ppath):
     def __init__(self, **kwargs):
         self._pclass = pclass
         self._params = kwargs
+        self._fitted = False
         hpmods = {}
         for key, val in kwargs.items():
             if isinstance(val, D3MWrapper):
@@ -458,14 +459,25 @@ def D3MWrapperClassFactory(pclass, ppath):
         self._prim = pclass(hyperparams=hpclass(hpdefaults, **hpmods))
     config['__init__'] = __init__
 
+    def __get_state__(self):      
+        if not self._fitted:
+            self._prim = None
+        return self.__dict__.copy()
+    config['__getstate__'] = __get_state__
+
+    def __set_state__(self, state):
+        self.__dict__.update(state)
+        if self._prim is None:
+            self._prim = self._pclass(hyperparams=hpclass(hpdefaults, **self._params))
+    config['__setstate__'] = __set_state__
+
 #    def __get_state__(self):
 #        return self.__dict__.copy()
 #    config['__get_state__'] = __get_state__
-
+#
 #    def __set_state__(self, state):
 #        self.__dict__.update(state)
 #    config['__set_state__'] = __set_state__
-
 
     # This is confusing: what sklearn calls params, d3m calls hyperparams
     def get_params(self, deep=False):
@@ -475,12 +487,13 @@ def D3MWrapperClassFactory(pclass, ppath):
     # Note that this blows away the previous underlying primitive.
     # Should be OK, since we only call this method before fitting.
     def set_params(self, **params):
-        self._prim = pclass(hyperparams=hpclass(params))
+        self._prim = pclass(hyperparams=hpclass(hpdefaults, **params))
     config['set_params'] = set_params
 
     def fit(self, X, y):
         self._prim.set_training_data(inputs=DataFrame(X, generate_metadata=False), outputs=y)
         self._prim.fit()
+        self._fitted = True
         return self
     config['fit'] = fit
 
