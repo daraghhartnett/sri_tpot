@@ -93,11 +93,11 @@ classifier_config_dict = {
     },
 
 #    Disabled for testing.  To slow for debugging!
-    'd3m.primitives.sklearn_wrap.SKLogisticRegression': {
-        'penalty': ["l1", "l2"],
-        'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.],
-        'dual': [True, False]
-    },
+#    'd3m.primitives.sklearn_wrap.SKLogisticRegression': {
+#        'penalty': ["l1", "l2"],
+#        'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.],
+#        'dual': [True, False]
+#    },
 
 # Not available in sk_wrap
 #    'xgboost.XGBClassifier': {
