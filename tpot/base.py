@@ -683,7 +683,9 @@ class TPOTBase(BaseEstimator):
                 self._pop = pop
 
         # Allow for certain exceptions to signal a premature fit() cancellation
+
         except (KeyboardInterrupt, SystemExit, StopIteration) as e:
+#        except Exception as e:
             if self.verbosity > 0:
                 self._pbar.write('', file=self._file)
                 self._pbar.write('{}\nTPOT closed prematurely. Will use the current best pipeline.'.format(e),

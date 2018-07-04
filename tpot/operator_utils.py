@@ -509,7 +509,8 @@ def D3MWrapperClassFactory(pclass, ppath):
         config['transform'] = transform
 
     def predict(self, X):
-        return self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        # We convert to ndarray here, because sklearn gets confused about Dataframes
+        return self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value.values
     if family == 'CLASSIFICATION' or family == 'REGRESSION':
         config['predict'] = predict
 
