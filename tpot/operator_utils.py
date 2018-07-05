@@ -453,6 +453,8 @@ def D3MWrapperClassFactory(pclass, ppath):
                 hpmods[key] = val
             else:
                 _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
+        # The default true setting wreaks havoc on our ability to do cross-validation
+#        hpmods['add_index_columns'] = False
         return hpmods
     config['_get_hpmods'] = _get_hpmods
 
@@ -504,13 +506,19 @@ def D3MWrapperClassFactory(pclass, ppath):
     config['fit'] = fit
 
     def transform(self, X):
-        return self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+#        print("%s asked to transform data with %d rows" % (type(self), len(X)))
+        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+#        print("%s transformed to %d rows" % (type(self), len(result)))
+        return result
     if family == 'FEATURE_SELECTION' or family == 'DATA_PREPROCESSING' or family == 'DATA_TRANSFORMATION':
         config['transform'] = transform
 
     def predict(self, X):
         # We convert to ndarray here, because sklearn gets confused about Dataframes
-        return self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value.values
+#        print("%s asked to predict on data with %d rows" % (type(self), len(X)))
+        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value.values
+#        print("%s produced %d predictions" % (type(self), len(result)))
+        return result
     if family == 'CLASSIFICATION' or family == 'REGRESSION':
         config['predict'] = predict
 

@@ -1341,7 +1341,7 @@ class TPOTBase(BaseEstimator):
                     operator_counts[individual_str] = max(1, operator_count)
 
                     stats_dicts[individual_str] = individual.statistics
-                except Exception:
+                except Exception as e:
                     self.evaluated_individuals_[individual_str] = self._combine_individual_stats(5000.,
                                                                                                  -float('inf'),
                                                                                                  individual.statistics)
