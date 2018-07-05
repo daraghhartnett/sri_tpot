@@ -78,11 +78,12 @@ classifier_config_dict = {
         'max_features': np.arange(0.05, 1.01, 0.05)
     },
 
-    'd3m.primitives.sklearn_wrap.SKKNeighborsClassifier': {
-        'n_neighbors': range(1, 101),
-        'weights': ["uniform", "distance"],
-        'p': [1, 2]
-    },
+# TODO: Uncomment when bug Dayne discovered on 7/2/2018 is fixed
+    # 'd3m.primitives.sklearn_wrap.SKKNeighborsClassifier': {
+    #     'n_neighbors': range(1, 101),
+    #     'weights': ["uniform", "distance"],
+    #     'p': [1, 2]
+    # },
 
     'd3m.primitives.sklearn_wrap.SKLinearSVC': {
         'penalty': ["l1", "l2"],
@@ -92,7 +93,7 @@ classifier_config_dict = {
         'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.]
     },
 
-#    Disabled for testing.  To slow for debugging!
+# TODO: Re-enable for eval if it can run to completion
 #    'd3m.primitives.sklearn_wrap.SKLogisticRegression': {
 #        'penalty': ["l1", "l2"],
 #        'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.],
