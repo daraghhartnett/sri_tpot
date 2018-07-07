@@ -499,7 +499,13 @@ def D3MWrapperClassFactory(pclass, ppath):
     config['set_params'] = set_params
 
     def fit(self, X, y):
-        self._prim.set_training_data(inputs=DataFrame(X, generate_metadata=False), outputs=y)
+        required_kwargs = mdata['primitive_code']['instance_methods']['set_training_data']['arguments']
+        supplied_kwargs = {}
+        if 'inputs' in required_kwargs:
+            supplied_kwargs['inputs'] = DataFrame(X, generate_metadata=False)
+        if 'outputs' in required_kwargs:
+            supplied_kwargs['outputs'] = y
+        self._prim.set_training_data(**supplied_kwargs)
         self._prim.fit()
         self._fitted = True
         return self

@@ -31,10 +31,12 @@ import sys
 import imp
 from functools import partial
 from datetime import datetime
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, active_children, Pool
 import os
 import re
 import errno
+import traceback
+from stopit import SignalTimeout as Timeout
 
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -109,6 +111,7 @@ class TPOTBase(BaseEstimator):
                  mutation_rate=0.9, crossover_rate=0.1,
                  scoring=None, cv=5, subsample=1.0, n_jobs=1,
                  max_time_mins=None, max_eval_time_mins=5,
+                 max_generation_time_mins=10,
                  random_state=None, config_dict=None,
                  warm_start=False, memory=None,
                  periodic_checkpoint_folder=None, early_stop=None,
@@ -282,6 +285,7 @@ class TPOTBase(BaseEstimator):
         self.max_time_mins = max_time_mins
         self.max_eval_time_mins = max_eval_time_mins
         self.max_eval_time_seconds = max(int(self.max_eval_time_mins * 60), 1)
+        self.max_generation_time_mins = max_generation_time_mins
         self.periodic_checkpoint_folder = periodic_checkpoint_folder
         self.early_stop = early_stop
         self._last_optimized_pareto_front = None
@@ -686,12 +690,16 @@ class TPOTBase(BaseEstimator):
 
         except (KeyboardInterrupt, SystemExit, StopIteration) as e:
 #        except Exception as e:
+            self._logger.info("Execution interrupted")
+            self._logger.info(traceback.format_exc())
             if self.verbosity > 0:
                 self._pbar.write('', file=self._file)
                 self._pbar.write('{}\nTPOT closed prematurely. Will use the current best pipeline.'.format(e),
                                  file=self._file)
         finally:
             # keep trying 10 times in case weird things happened like multiple CTRL+C or exceptions
+#            print("finally block in tpot.fit")
+#            print(traceback.format_exc())
             attempts = 10
             for attempt in range(attempts):
                 try:
@@ -1224,22 +1232,54 @@ class TPOTBase(BaseEstimator):
 
         result_score_list = []
         # Don't use parallelization if n_jobs==1
-        if self.n_jobs == 1:
-#            import pickle
-            for i, sklearn_pipeline in enumerate(sklearn_pipeline_list):
-                print(self.simplify_string(eval_individuals_str[i]))
+
+        self._stop_by_max_time_mins()
+
+        def _eval_one(arg):
+#            print(os.getpid(), os.getppid())
+            ppln,index,istr,logr = arg
+#            logr.info("Evaluating %d: %s" % (index,istr))
+#            Logging takes a little doing with MP
+            print("Evaluating %d: %s" % (index,istr))
+            val = partial_wrapped_cross_val_score(sklearn_pipeline=ppln, index=index)
+#            logr.info("Score %d = %s" % (index,val))
+            print("Score %d = %s" % (index,val))
+            return (index, val)
+
+        result_score_list = [-float('inf') for p in sklearn_pipeline_list]
+        # Bundles up arguments for _eval_one, above
+        inds_to_eval = [(p,i,self.simplify_string(eval_individuals_str[i]),self._logger) 
+                        for i,p in enumerate(sklearn_pipeline_list)]
+
+        with Timeout(self.max_generation_time_mins * 60.0) as timeout_ctx:
+            if self.n_jobs == 1:
+                p = None
+                for ind in inds_to_eval:
+                    result = _eval_one(ind)
+                    self._update_val(result, result_score_list)
+
                 # DEBUG
+#                import pickle
 #                pickled = pickle.dumps(sklearn_pipeline)
 #                unpickled = pickle.loads(pickled)
-                self._stop_by_max_time_mins()
-                val = partial_wrapped_cross_val_score(sklearn_pipeline=sklearn_pipeline)
-                result_score_list = self._update_val(val, result_score_list)
-        else:
-            #DBF
-            p = ProcessPool()
-            for val in p.imap(lambda x: partial_wrapped_cross_val_score(sklearn_pipeline=x), sklearn_pipeline_list):
-                result_score_list = self._update_val(val, result_score_list)
-                self._stop_by_max_time_mins()                
+
+            else:
+                p = ProcessPool()
+                try:
+                    for result in p.uimap(_eval_one, inds_to_eval):
+                        self._update_val(result, result_score_list)
+                except Exception as e:
+                    self._logger.info("exception in multiprocessing")
+                    self._logger.info(traceback.format_exc())
+                    raise
+
+        if p is not None:
+            p.terminate()
+            p.clear()
+            p = None
+
+#        print(result_score_list)
+
 
 #            for chunk_idx in range(0, len(sklearn_pipeline_list), self.n_jobs * 4):
 #                self._stop_by_max_time_mins()
@@ -1545,13 +1585,13 @@ class TPOTBase(BaseEstimator):
             A updated list of CV scores
         """
         self._update_pbar()
+        index, val = val
         if val == 'Timeout':
             self._update_pbar(pbar_msg=('Skipped pipeline #{0} due to time out. '
-                                        'Continuing to the next pipeline.'.format(self._pbar.n)))
-            result_score_list.append(-float('inf'))
+                                        'Continuing to the next pipeline.'.format(index)))
+            result_score_list[index] = -float('inf')
         else:
-            result_score_list.append(val)
-        return result_score_list
+            result_score_list[index] = val
 
     @_pre_test
     def _generate(self, pset, min_, max_, condition, type_=None):

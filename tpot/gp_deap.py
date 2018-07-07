@@ -37,7 +37,7 @@ from sklearn.model_selection._split import check_cv
 from sklearn.base import clone, is_classifier
 from collections import defaultdict
 import warnings
-from stopit import threading_timeoutable, TimeoutException
+from stopit import threading_timeoutable, signal_timeoutable, TimeoutException
 
 
 _logger = logging.getLogger(__name__)
@@ -435,9 +435,10 @@ def mutNodeReplacement(individual, pset):
     return individual,
 
 
-@threading_timeoutable(default="Timeout")
+#@threading_timeoutable(default="Timeout")
+@signal_timeoutable(default="Timeout")
 def _wrapped_cross_val_score(sklearn_pipeline, features, target,
-                             cv, scoring_function, sample_weight=None, groups=None):
+                             cv, scoring_function, sample_weight=None, groups=None, index=None):
     """Fit estimator and compute scores for a given dataset split.
     Parameters
     ----------
@@ -461,7 +462,7 @@ def _wrapped_cross_val_score(sklearn_pipeline, features, target,
     groups: array-like {n_samples, }, optional
         Group labels for the samples used while splitting the dataset into train/test set
     """
-    print(sklearn_pipeline.steps)
+#    print(index, sklearn_pipeline.steps)
     sample_weight_dict = set_sample_weight(sklearn_pipeline.steps, sample_weight)
 
     features, target, groups = indexable(features, target, groups)
@@ -474,6 +475,7 @@ def _wrapped_cross_val_score(sklearn_pipeline, features, target,
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             scores = []
+            fold = 0
             for train, test in cv_iter:
                 estimator = clone(sklearn_pipeline)
                 score = _fit_and_score(estimator=estimator,
@@ -485,11 +487,13 @@ def _wrapped_cross_val_score(sklearn_pipeline, features, target,
                                        verbose=0,
                                        parameters=None,
                                        fit_params=sample_weight_dict)
-                print(score)
+                fold += 1
+                print("%d (%d): %s" % (index, fold, score))
                 scores.append(score)
             CV_score = np.array(scores)[:, 0]
             return np.nanmean(CV_score)
     except TimeoutException:
+        _logger.info("Evaluation timeout on %s" % sklearn_pipeline.steps)
         return "Timeout"
     except Exception as e:
         _logger.info(traceback.format_exc())
