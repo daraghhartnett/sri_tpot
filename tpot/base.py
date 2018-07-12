@@ -36,7 +36,7 @@ import os
 import re
 import errno
 import traceback
-from stopit import SignalTimeout as Timeout
+from stopit import ThreadingTimeout as Timeout
 
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -80,7 +80,7 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("TPOT version 1.1.0 (SRI Fork)")
+print("TPOT version 1.1.1 (SRI Fork)")
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
