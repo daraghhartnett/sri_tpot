@@ -36,6 +36,7 @@ import os
 import re
 import errno
 import traceback
+#from stopit import SignalTimeout as Timeout
 from stopit import ThreadingTimeout as Timeout
 
 from tempfile import mkdtemp
@@ -80,7 +81,7 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("TPOT version 1.1.1 (SRI Fork)")
+print("TPOT version 1.1.0 (SRI Fork)")
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
@@ -1240,11 +1241,11 @@ class TPOTBase(BaseEstimator):
             ppln,index,istr,logr = arg
 #            logr.info("Evaluating %d: %s" % (index,istr))
 #            Logging takes a little doing with MP
-            print("Evaluating %d: %s" % (index,istr))
+#            print("Evaluating %d: %s" % (index,istr))
             val = partial_wrapped_cross_val_score(sklearn_pipeline=ppln, index=index)
 #            logr.info("Score %d = %s" % (index,val))
-            print("Score %d = %s" % (index,val))
-            return (index, val)
+#            print("Score %d = %s" % (index,val))
+            return (index, val, istr)
 
         result_score_list = [-float('inf') for p in sklearn_pipeline_list]
         # Bundles up arguments for _eval_one, above
@@ -1256,7 +1257,7 @@ class TPOTBase(BaseEstimator):
                 p = None
                 for ind in inds_to_eval:
                     result = _eval_one(ind)
-                    self._update_val(result, result_score_list)
+                    self._update_val(result, result_score_list, individuals)
 
                 # DEBUG
 #                import pickle
@@ -1267,7 +1268,7 @@ class TPOTBase(BaseEstimator):
                 p = ProcessPool()
                 try:
                     for result in p.uimap(_eval_one, inds_to_eval):
-                        self._update_val(result, result_score_list)
+                        self._update_val(result, result_score_list, individuals)
                 except Exception as e:
                     self._logger.info("exception in multiprocessing")
                     self._logger.info(traceback.format_exc())
@@ -1303,8 +1304,8 @@ class TPOTBase(BaseEstimator):
             count = self.evaluated_individuals_[str(individual)]['operator_count']
             score = self.evaluated_individuals_[str(individual)]['internal_cv_score']
             result.append((count, score))
-            if score != 'Timeout' and self.update_callback is not None:
-                self.update_callback(individual, score)
+#            if score != 'Timeout' and self.update_callback is not None:
+#                self.update_callback(individual, score)
 
         return result
 
@@ -1569,7 +1570,7 @@ class TPOTBase(BaseEstimator):
                 operator_count += 1
         return operator_count
 
-    def _update_val(self, val, result_score_list):
+    def _update_val(self, val, result_score_list, individuals):
         """Update values in the list of result scores and self._pbar during pipeline evaluation.
 
         Parameters
@@ -1585,12 +1586,16 @@ class TPOTBase(BaseEstimator):
             A updated list of CV scores
         """
         self._update_pbar()
-        index, val = val
+        index, val, istr = val
         if val == 'Timeout':
             self._update_pbar(pbar_msg=('Skipped pipeline #{0} due to time out. '
                                         'Continuing to the next pipeline.'.format(index)))
             result_score_list[index] = -float('inf')
         else:
+            self._logger.info("Result=%s: %s" % (val, istr))
+            if val != 'Timeout' and self.update_callback is not None:
+                self.update_callback(individuals[index], val)
+
             result_score_list[index] = val
 
     @_pre_test
