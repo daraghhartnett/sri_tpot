@@ -435,8 +435,8 @@ def mutNodeReplacement(individual, pset):
     return individual,
 
 
-#@threading_timeoutable(default="Timeout")
-@signal_timeoutable(default="Timeout")
+@threading_timeoutable(default="Timeout")
+# @signal_timeoutable(default="Timeout")
 def _wrapped_cross_val_score(sklearn_pipeline, features, target,
                              cv, scoring_function, sample_weight=None, groups=None, index=None, print_individual_scores=False):
     """Fit estimator and compute scores for a given dataset split.

@@ -116,9 +116,9 @@ classifier_config_dict = {
 #        'threshold': np.arange(0.0, 1.01, 0.05)
 #    },
 
-    'd3m.primitives.sklearn_wrap.SKFastICA': {
-        'tol': np.arange(0.0, 1.01, 0.05)
-    },
+    # 'd3m.primitives.sklearn_wrap.SKFastICA': {
+    #     'tol': np.arange(0.0, 1.01, 0.05)
+    # },
 
     'd3m.primitives.sklearn_wrap.SKFeatureAgglomeration': {
         'linkage': ['ward', 'complete', 'average'],
@@ -137,26 +137,26 @@ classifier_config_dict = {
 #        'norm': ['l1', 'l2', 'max']
 #    },
 
-    'd3m.primitives.sklearn_wrap.SKNystroem': {
-        'kernel': ['rbf', 'cosine', 'chi2', 'laplacian', 'polynomial', 'poly', 'linear', 'additive_chi2', 'sigmoid'],
-        'gamma': np.arange(0.0, 1.01, 0.05),
-        'n_components': range(1, 11)
-    },
+    # 'd3m.primitives.sklearn_wrap.SKNystroem': {
+    #     'kernel': ['rbf', 'cosine', 'chi2', 'laplacian', 'polynomial', 'poly', 'linear', 'additive_chi2', 'sigmoid'],
+    #     'gamma': np.arange(0.0, 1.01, 0.05),
+    #     'n_components': range(1, 11)
+    # },
 
-    'd3m.primitives.sklearn_wrap.SKPCA': {
-        'svd_solver': ['randomized'],
-        'iterated_power': range(1, 11)
-    },
+    # 'd3m.primitives.sklearn_wrap.SKPCA': {
+    #     'svd_solver': ['randomized'],
+    #     'iterated_power': range(1, 11)
+    # },
 
-    'd3m.primitives.sklearn_wrap.SKPolynomialFeatures': {
-        'degree': [2],
-        'include_bias': [False],
-        'interaction_only': [False]
-    },
+    # 'd3m.primitives.sklearn_wrap.SKPolynomialFeatures': {
+    #     'degree': [2],
+    #     'include_bias': [False],
+    #     'interaction_only': [False]
+    # },
 
-    'd3m.primitives.sklearn_wrap.SKRBFSampler': {
-        'gamma': np.arange(0.0, 1.01, 0.05)
-    },
+    # 'd3m.primitives.sklearn_wrap.SKRBFSampler': {
+    #     'gamma': np.arange(0.0, 1.01, 0.05)
+    # },
 
 # Not wrapped
 #    'sklearn.preprocessing.RobustScaler': {
