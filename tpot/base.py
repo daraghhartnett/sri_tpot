@@ -36,8 +36,7 @@ import os
 import re
 import errno
 import traceback
-#from stopit import SignalTimeout as Timeout
-from stopit import ThreadingTimeout as Timeout
+from stopit import SignalTimeout
 
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -105,14 +104,26 @@ if sys.platform.startswith('win'):
     win32api.SetConsoleCtrlHandler(handler, 1)
 
 
+class NoOpTimeout:
+
+    def __init__(self, time):
+        pass
+
+    def __enter__(self):
+        return None
+
+    def __exit__(self, type_, value, tb):
+        pass
+
+
 class TPOTBase(BaseEstimator):
     """Automatically creates and optimizes machine learning pipelines using GP."""
 
     def __init__(self, generations=100, population_size=100, offspring_size=None,
                  mutation_rate=0.9, crossover_rate=0.1,
                  scoring=None, cv=5, subsample=1.0, n_jobs=1,
-                 max_time_mins=None, max_eval_time_mins=5,
-                 max_generation_time_mins=10,
+                 max_time_mins=None, max_eval_time_mins=3,
+                 max_generation_time_mins=5,
                  random_state=None, config_dict=None,
                  warm_start=False, memory=None,
                  periodic_checkpoint_folder=None, early_stop=None,
@@ -668,7 +679,8 @@ class TPOTBase(BaseEstimator):
         try:
             with warnings.catch_warnings():
                 self._setup_memory()
-                warnings.simplefilter('ignore')
+#                warnings.simplefilter('ignore')
+                warnings.simplefilter('always')
                 pop, _ = eaMuPlusLambda(
                     population=pop,
                     toolbox=self._toolbox,
@@ -1236,21 +1248,29 @@ class TPOTBase(BaseEstimator):
 
         self._stop_by_max_time_mins()
 
+        print_individual_scores = True
+
         def _eval_one(arg):
-#            print(os.getpid(), os.getppid())
+            if print_individual_scores:
+                print(os.getpid(), os.getppid())
             ppln,index,istr,logr = arg
-#            logr.info("Evaluating %d: %s" % (index,istr))
-#            Logging takes a little doing with MP
-#            print("Evaluating %d: %s" % (index,istr))
-            val = partial_wrapped_cross_val_score(sklearn_pipeline=ppln, index=index)
+            if print_individual_scores:            
+                print("Evaluating %d: %s" % (index,istr))
+            val = partial_wrapped_cross_val_score(sklearn_pipeline=ppln, index=index, print_individual_scores=print_individual_scores)
 #            logr.info("Score %d = %s" % (index,val))
-#            print("Score %d = %s" % (index,val))
+            if print_individual_scores:            
+                print("Score %d = %s" % (index,val))
             return (index, val, istr)
 
         result_score_list = [-float('inf') for p in sklearn_pipeline_list]
         # Bundles up arguments for _eval_one, above
         inds_to_eval = [(p,i,self.simplify_string(eval_individuals_str[i]),self._logger) 
                         for i,p in enumerate(sklearn_pipeline_list)]
+
+        if self.max_generation_time_mins is None:
+            Timeout = NoOpTimeout
+        else:
+            Timeout = SignalTimeout
 
         with Timeout(self.max_generation_time_mins * 60.0) as timeout_ctx:
             if self.n_jobs == 1:
