@@ -679,8 +679,8 @@ class TPOTBase(BaseEstimator):
         try:
             with warnings.catch_warnings():
                 self._setup_memory()
-#                warnings.simplefilter('ignore')
-                warnings.simplefilter('always')
+                warnings.simplefilter('ignore')
+#                warnings.simplefilter('always')
                 pop, _ = eaMuPlusLambda(
                     population=pop,
                     toolbox=self._toolbox,
@@ -1267,12 +1267,17 @@ class TPOTBase(BaseEstimator):
         inds_to_eval = [(p,i,self.simplify_string(eval_individuals_str[i]),self._logger) 
                         for i,p in enumerate(sklearn_pipeline_list)]
 
+        print("Max gen time: %s" % self.max_generation_time_mins)
         if self.max_generation_time_mins is None:
             Timeout = NoOpTimeout
         else:
             Timeout = SignalTimeout
 
-        with Timeout(self.max_generation_time_mins * 60.0) as timeout_ctx:
+        gen_timeout_seconds = None
+        if self.max_generation_time_mins is not None:
+            gen_timeout_seconds = self.max_generation_time_mins * 60.0
+
+        with Timeout(gen_timeout_seconds) as timeout_ctx:
             if self.n_jobs == 1:
                 p = None
                 for ind in inds_to_eval:
