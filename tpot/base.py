@@ -123,7 +123,7 @@ class TPOTBase(BaseEstimator):
                  mutation_rate=0.9, crossover_rate=0.1,
                  scoring=None, cv=5, subsample=1.0, n_jobs=1,
                  max_time_mins=None, max_eval_time_mins=3,
-                 max_generation_time_mins=5,
+                 max_generation_time_mins=10,
                  random_state=None, config_dict=None,
                  warm_start=False, memory=None,
                  periodic_checkpoint_folder=None, early_stop=None,
@@ -1229,7 +1229,7 @@ class TPOTBase(BaseEstimator):
 
         """
 
-        operator_counts, eval_individuals_str, sklearn_pipeline_list, stats_dicts = self._preprocess_individuals(individuals)
+        operator_counts, eval_individuals_str, sklearn_pipeline_list, unique_individuals, stats_dicts = self._preprocess_individuals(individuals)
 
         # Make the partial function that will be called below
         partial_wrapped_cross_val_score = partial(
@@ -1248,7 +1248,7 @@ class TPOTBase(BaseEstimator):
 
         self._stop_by_max_time_mins()
 
-        print_individual_scores = True
+        print_individual_scores = False
 
         def _eval_one(arg):
             if print_individual_scores:
@@ -1267,7 +1267,11 @@ class TPOTBase(BaseEstimator):
         inds_to_eval = [(p,i,self.simplify_string(eval_individuals_str[i]),self._logger) 
                         for i,p in enumerate(sklearn_pipeline_list)]
 
-        print("Max gen time: %s" % self.max_generation_time_mins)
+#        for p, i, istr, lgr in inds_to_eval:
+#            print("Preparing to eval %d=%s" % (i, istr))
+#            print("Individual: %s" % unique_individuals[i])
+
+#        print("Max gen time: %s" % self.max_generation_time_mins)
         if self.max_generation_time_mins is None:
             Timeout = NoOpTimeout
         else:
@@ -1282,7 +1286,7 @@ class TPOTBase(BaseEstimator):
                 p = None
                 for ind in inds_to_eval:
                     result = _eval_one(ind)
-                    self._update_val(result, result_score_list, individuals)
+                    self._update_val(result, result_score_list, unique_individuals)
 
                 # DEBUG
 #                import pickle
@@ -1293,7 +1297,7 @@ class TPOTBase(BaseEstimator):
                 p = ProcessPool()
                 try:
                     for result in p.uimap(_eval_one, inds_to_eval):
-                        self._update_val(result, result_score_list, individuals)
+                        self._update_val(result, result_score_list, unique_individuals)
                 except Exception as e:
                     self._logger.info("exception in multiprocessing")
                     self._logger.info(traceback.format_exc())
@@ -1416,7 +1420,7 @@ class TPOTBase(BaseEstimator):
                 eval_individuals_str.append(individual_str)
                 sklearn_pipeline_list.append(sklearn_pipeline)
 
-        return operator_counts, eval_individuals_str, sklearn_pipeline_list, stats_dicts
+        return operator_counts, eval_individuals_str, sklearn_pipeline_list, unique_individuals, stats_dicts
 
     def _update_evaluated_individuals_(self, result_score_list, eval_individuals_str, operator_counts, stats_dicts):
         """Update self.evaluated_individuals_ and error message during pipeline evaluation.
@@ -1612,6 +1616,10 @@ class TPOTBase(BaseEstimator):
         """
         self._update_pbar()
         index, val, istr = val
+#        print("_update_val got %d, %s, %s, %s" % (index, val, istr, individuals[index]))
+#        print("_update_val has individuals:")
+#        for i, ind in enumerate(individuals):
+#            print("   %d, %s" % (i, ind))
         if val == 'Timeout':
             self._update_pbar(pbar_msg=('Skipped pipeline #{0} due to time out. '
                                         'Continuing to the next pipeline.'.format(index)))
