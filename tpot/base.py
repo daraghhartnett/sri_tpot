@@ -80,7 +80,7 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("TPOT version 1.1.1 (SRI Fork)")
+print("TPOT version 1.1.2 (SRI Fork)")
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
@@ -416,7 +416,7 @@ class TPOTBase(BaseEstimator):
                     warnings.simplefilter('always', DeprecationWarning)
                     warnings.warn('Scoring function {} looks like it is a metric function '
                                   'rather than a scikit-learn scorer. This scoring type was deprecated '
-                                  'in version TPOT 0.9.1 and will be removed in version 0.11. '
+                                  'in n TPOT 0.9.1 and will be removed in version 0.11. '
                                   'Please update your custom scoring function.'.format(scoring), DeprecationWarning)
                 else:
                     if isinstance(scoring, _BaseScorer):
@@ -1273,6 +1273,7 @@ class TPOTBase(BaseEstimator):
 
 #        print("Max gen time: %s" % self.max_generation_time_mins)
         if self.max_generation_time_mins is None:
+
             Timeout = NoOpTimeout
         else:
             Timeout = SignalTimeout
