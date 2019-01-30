@@ -30,27 +30,27 @@ import numpy as np
 classifier_config_dict = {
 
     # Classifiers
-    'd3m.primitives.sklearn_wrap.SKGaussianNB': {
+    'sklearn_wrap.SKGaussianNB': {
     },
 
-    'd3m.primitives.sklearn_wrap.SKBernoulliNB': {
+    'sklearn_wrap.SKBernoulliNB': {
         'alpha': [1e-3, 1e-2, 1e-1, 1., 10., 100.],
         'fit_prior': [True, False]
     },
 
-    'd3m.primitives.sklearn_wrap.SKMultinomialNB': {
+    'sklearn_wrap.SKMultinomialNB': {
         'alpha': [1e-3, 1e-2, 1e-1, 1., 10., 100.],
         'fit_prior': [True, False]
     },
 
-    'd3m.primitives.sklearn_wrap.SKDecisionTreeClassifier': {
+    'sklearn_wrap.SKDecisionTreeClassifier': {
         'criterion': ["gini", "entropy"],
         'max_depth': range(1, 11),
         'min_samples_split': range(2, 21),
         'min_samples_leaf': range(1, 21)
     },
 
-    'd3m.primitives.sklearn_wrap.SKExtraTreesClassifier': {
+    'sklearn_wrap.SKExtraTreesClassifier': {
         'n_estimators': [100],
         'criterion': ["gini", "entropy"],
         'max_features': np.arange(0.05, 1.01, 0.05),
@@ -59,7 +59,7 @@ classifier_config_dict = {
         'bootstrap': [True, False]
     },
 
-    'd3m.primitives.sklearn_wrap.SKRandomForestClassifier': {
+    'sklearn_wrap.SKRandomForestClassifier': {
         'n_estimators': [100],
         'criterion': ["gini", "entropy"],
         'max_features': np.arange(0.05, 1.01, 0.05),
@@ -68,7 +68,7 @@ classifier_config_dict = {
         'bootstrap': [True, False]
     },
 
-    'd3m.primitives.sklearn_wrap.SKGradientBoostingClassifier': {
+    'sklearn_wrap.SKGradientBoostingClassifier': {
         'n_estimators': [100],
         'learning_rate': [1e-3, 1e-2, 1e-1, 0.5, 1.],
         'max_depth': range(1, 11),
@@ -78,13 +78,13 @@ classifier_config_dict = {
         'max_features': np.arange(0.05, 1.01, 0.05)
     },
 
-    'd3m.primitives.sklearn_wrap.SKKNeighborsClassifier': {
+    'sklearn_wrap.SKKNeighborsClassifier': {
         'n_neighbors': range(1, 101),
         'weights': ["uniform", "distance"],
         'p': [1, 2]
     },
 
-    'd3m.primitives.sklearn_wrap.SKLinearSVC': {
+    'sklearn_wrap.SKLinearSVC': {
         'penalty': ["l1", "l2"],
         'loss': ["hinge", "squared_hinge"],
         'dual': [True, False],
@@ -93,7 +93,7 @@ classifier_config_dict = {
     },
 
 # TODO: Re-enable for eval if it can run to completion
-#    'd3m.primitives.sklearn_wrap.SKLogisticRegression': {
+#    'sklearn_wrap.SKLogisticRegression': {
 #        'penalty': ["l1", "l2"],
 #        'C': [1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1., 5., 10., 15., 20., 25.],
 #        'dual': [True, False]
@@ -116,11 +116,11 @@ classifier_config_dict = {
 #    },
 
 #    Possible locker
-#    'd3m.primitives.sklearn_wrap.SKFastICA': {
+#    'sklearn_wrap.SKFastICA': {
 #        'tol': np.arange(0.0, 1.01, 0.05)
 #    },
 
-    'd3m.primitives.sklearn_wrap.SKFeatureAgglomeration': {
+    'sklearn_wrap.SKFeatureAgglomeration': {
         'linkage': ['ward', 'complete', 'average'],
         'affinity': ['euclidean', 'l1', 'l2', 'manhattan', 'cosine', 'precomputed']
     },
@@ -129,7 +129,7 @@ classifier_config_dict = {
 #    'sklearn.preprocessing.MaxAbsScaler': {
 #    },
 
-    'd3m.primitives.sklearn_wrap.SKMinMaxScaler': {
+    'sklearn_wrap.SKMinMaxScaler': {
     },
 
 # Not wrapped
@@ -138,27 +138,27 @@ classifier_config_dict = {
 #    },
 
 #    Possible locker
-#    'd3m.primitives.sklearn_wrap.SKNystroem': {
+#    'sklearn_wrap.SKNystroem': {
 #        'kernel': ['rbf', 'cosine', 'chi2', 'laplacian', 'polynomial', 'poly', 'linear', 'additive_chi2', 'sigmoid'],
 #        'gamma': np.arange(0.0, 1.01, 0.05),
 #        'n_components': range(1, 11)
 #    },
 
 #    Possible locker
-#    'd3m.primitives.sklearn_wrap.SKPCA': {
+#    'sklearn_wrap.SKPCA': {
 #        'svd_solver': ['randomized'],
 #        'iterated_power': range(1, 11)
 #    },
 
 #    Possible locker
-#    'd3m.primitives.sklearn_wrap.SKPolynomialFeatures': {
+#    'sklearn_wrap.SKPolynomialFeatures': {
 #        'degree': [2],
 #        'include_bias': [False],
 #        'interaction_only': [False]
 #    },
 
 #   Possible locker
-#    'd3m.primitives.sklearn_wrap.SKRBFSampler': {
+#    'sklearn_wrap.SKRBFSampler': {
 #        'gamma': np.arange(0.0, 1.01, 0.05)
 #    },
 
@@ -166,13 +166,13 @@ classifier_config_dict = {
 #    'sklearn.preprocessing.RobustScaler': {
 #    },
 
-    'd3m.primitives.sklearn_wrap.SKStandardScaler': {
+    'sklearn_wrap.SKStandardScaler': {
     },
 
     'd3m.primitives.sri.tpot.ZeroCount': {
     },
 
-    'd3m.primitives.sklearn_wrap.SKOneHotEncoder': {
+    'sklearn_wrap.SKOneHotEncoder': {
         'minimum_fraction': [0.05, 0.1, 0.15, 0.2, 0.25],
         'sparse': [False]
     },
@@ -187,7 +187,7 @@ classifier_config_dict = {
 #        }
 #    },
 
-    'd3m.primitives.sklearn_wrap.SKSelectPercentile': {
+    'sklearn_wrap.SKSelectPercentile': {
         'percentile': range(1, 100),
         'score_func': ['f_classif']
     }
