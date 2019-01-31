@@ -35,7 +35,7 @@ regressor_config_dict = {
 #        'tol': [1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
 #    },
 
-    'sklearn_wrap.SKExtraTreesRegressor': {
+    'd3m.primitives.regression.extra_trees.SKlearn': {
         'n_estimators': [100],
         'max_features': np.arange(0.05, 1.01, 0.05),
         'min_samples_split': range(2, 21),
@@ -43,7 +43,7 @@ regressor_config_dict = {
         'bootstrap': [True, False]
     },
 
-    'sklearn_wrap.SKGradientBoostingRegressor': {
+    'd3m.primitives.regression.gradient_boosting.SKlearn': {
         'n_estimators': [100],
         'loss': ["ls", "lad", "huber", "quantile"],
         'learning_rate': [1e-3, 1e-2, 1e-1, 0.5, 1.],
@@ -55,20 +55,20 @@ regressor_config_dict = {
         'alpha': [0.75, 0.8, 0.85, 0.9, 0.95, 0.99]
     },
 
-    'sklearn_wrap.SKAdaBoostRegressor': {
+    'd3m.primitives.regression.gradient_boosting.SKlearn': {
         'n_estimators': [100],
         'learning_rate': [1e-3, 1e-2, 1e-1, 0.5, 1.],
         'loss': ["linear", "square", "exponential"],
         'max_depth': range(1, 11)
     },
 
-    'sklearn_wrap.SKDecisionTreeRegressor': {
+    'd3m.primitives.regression.decision_tree.SKlearn': {
         'max_depth': range(1, 11),
         'min_samples_split': range(2, 21),
         'min_samples_leaf': range(1, 21)
     },
 
-    'sklearn_wrap.SKKNeighborsRegressor': {
+    'd3m.primitives.regression.k_neighbors.SKlearn': {
         'n_neighbors': range(1, 101),
         'weights': ["uniform", "distance"],
         'p': [1, 2]
@@ -79,7 +79,7 @@ regressor_config_dict = {
 #        'normalize': [True, False]
 #    },
 
-    'sklearn_wrap.SKLinearSVR': {
+    'd3m.primitives.regression.linear_svr.SKlearn': {
         'loss': ["epsilon_insensitive", "squared_epsilon_insensitive"],
         'dual': [True, False],
         'tol': [1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
@@ -87,7 +87,7 @@ regressor_config_dict = {
         'epsilon': [1e-4, 1e-3, 1e-2, 1e-1, 1.]
     },
 
-    'sklearn_wrap.SKRandomForestRegressor': {
+    'd3m.primitives.regression.random_forest.SKlearn': {
         'n_estimators': [100],
         'max_features': np.arange(0.05, 1.01, 0.05),
         'min_samples_split': range(2, 21),
@@ -119,7 +119,7 @@ regressor_config_dict = {
     #     'tol': np.arange(0.0, 1.01, 0.05)
     # },
      
-    'sklearn_wrap.SKFeatureAgglomeration': {
+    'd3m.primitives.data_preprocessing.feature_agglomeration.SKlearn': {
         'linkage': ['ward', 'complete', 'average'],
         'affinity': ['euclidean', 'l1', 'l2', 'manhattan', 'cosine', 'precomputed']
     },
@@ -128,7 +128,7 @@ regressor_config_dict = {
 #    'sklearn.preprocessing.MaxAbsScaler': {
 #    },
 
-    'sklearn_wrap.SKMinMaxScaler': {
+    'd3m.primitives.data_preprocessing.min_max_scaler.SKlearn': {
     },
 
 # Not wrapped
@@ -161,13 +161,13 @@ regressor_config_dict = {
 #    'sklearn.preprocessing.RobustScaler': {
 #    },
 
-    'sklearn_wrap.SKStandardScaler': {
+    'd3m.primitives.data_preprocessing.standard_scaler.SKlearn': {
     },
 
     'd3m.primitives.sri.tpot.ZeroCount': {
     },
 
-    'sklearn_wrap.SKOneHotEncoder': {
+    'd3m.primitives.data_transformation.one_hot_encoder.SKlearn': {
         'minimum_fraction': [0.05, 0.1, 0.15, 0.2, 0.25],
         'sparse': [False]
     },
@@ -181,7 +181,7 @@ regressor_config_dict = {
 #        }
 #    },
 
-    'sklearn_wrap.SKSelectPercentile': {
+    'd3m.primitives.feature_selection.select_percentile.SKlearn': {
         'percentile': range(1, 100),
         'score_func': ['f_regression']
     }

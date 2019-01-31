@@ -504,7 +504,7 @@ def D3MWrapperClassFactory(pclass, ppath):
         if 'inputs' in required_kwargs:
             supplied_kwargs['inputs'] = DataFrame(X, generate_metadata=False)
         if 'outputs' in required_kwargs:
-            supplied_kwargs['outputs'] = y
+            supplied_kwargs['outputs'] = DataFrame(y, generate_metadata=False)
         self._prim.set_training_data(**supplied_kwargs)
         self._prim.fit()
         self._fitted = True
@@ -583,7 +583,8 @@ def _can_be_root(optype):
 #        class_ = obj.pclass
 #    else:
 #        class_ = obj
-    return (issubclass(optype, ClassifierMixin) 
+    _logger.info("checking optype %s is subclass of ClassifierMixin or RegressorMixin" % optype)
+    return (issubclass(optype, ClassifierMixin)
             or issubclass(optype, RegressorMixin))
 #            or issubclass(class_, SupervisedLearnerPrimitiveBase))
 

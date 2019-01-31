@@ -30,27 +30,27 @@ import numpy as np
 classifier_config_dict = {
 
     # Classifiers
-    'sklearn_wrap.SKGaussianNB': {
+    'd3m.primitives.classification.gaussian_naive_bayes.SKlearn': {
     },
 
-    'sklearn_wrap.SKBernoulliNB': {
+    'd3m.primitives.classification.bernoulli_naive_bayes.SKlearn': {
         'alpha': [1e-3, 1e-2, 1e-1, 1., 10., 100.],
         'fit_prior': [True, False]
     },
 
-    'sklearn_wrap.SKMultinomialNB': {
+    'd3m.primitives.classification.multinomial_naive_bayes.SKlearn': {
         'alpha': [1e-3, 1e-2, 1e-1, 1., 10., 100.],
         'fit_prior': [True, False]
     },
 
-    'sklearn_wrap.SKDecisionTreeClassifier': {
+    'd3m.primitives.classification.decision_tree.SKlearn': {
         'criterion': ["gini", "entropy"],
         'max_depth': range(1, 11),
         'min_samples_split': range(2, 21),
         'min_samples_leaf': range(1, 21)
     },
 
-    'sklearn_wrap.SKExtraTreesClassifier': {
+    'd3m.primitives.classification.extra_trees.SKlearn': {
         'n_estimators': [100],
         'criterion': ["gini", "entropy"],
         'max_features': np.arange(0.05, 1.01, 0.05),
@@ -59,7 +59,7 @@ classifier_config_dict = {
         'bootstrap': [True, False]
     },
 
-    'sklearn_wrap.SKRandomForestClassifier': {
+    'd3m.primitives.classification.random_forest.SKlearn': {
         'n_estimators': [100],
         'criterion': ["gini", "entropy"],
         'max_features': np.arange(0.05, 1.01, 0.05),
@@ -68,7 +68,7 @@ classifier_config_dict = {
         'bootstrap': [True, False]
     },
 
-    'sklearn_wrap.SKGradientBoostingClassifier': {
+    'd3m.primitives.classification.gradient_boosting.SKlearn': {
         'n_estimators': [100],
         'learning_rate': [1e-3, 1e-2, 1e-1, 0.5, 1.],
         'max_depth': range(1, 11),
@@ -78,13 +78,13 @@ classifier_config_dict = {
         'max_features': np.arange(0.05, 1.01, 0.05)
     },
 
-    'sklearn_wrap.SKKNeighborsClassifier': {
+    'd3m.primitives.classification.k_neighbors.SKlearn': {
         'n_neighbors': range(1, 101),
         'weights': ["uniform", "distance"],
         'p': [1, 2]
     },
 
-    'sklearn_wrap.SKLinearSVC': {
+    'd3m.primitives.classification.linear_svc.SKlearn': {
         'penalty': ["l1", "l2"],
         'loss': ["hinge", "squared_hinge"],
         'dual': [True, False],
@@ -120,7 +120,7 @@ classifier_config_dict = {
 #        'tol': np.arange(0.0, 1.01, 0.05)
 #    },
 
-    'sklearn_wrap.SKFeatureAgglomeration': {
+    'd3m.primitives.data_preprocessing.feature_agglomeration.SKlearn': {
         'linkage': ['ward', 'complete', 'average'],
         'affinity': ['euclidean', 'l1', 'l2', 'manhattan', 'cosine', 'precomputed']
     },
@@ -129,7 +129,7 @@ classifier_config_dict = {
 #    'sklearn.preprocessing.MaxAbsScaler': {
 #    },
 
-    'sklearn_wrap.SKMinMaxScaler': {
+    'd3m.primitives.data_preprocessing.min_max_scaler.SKlearn': {
     },
 
 # Not wrapped
@@ -166,13 +166,13 @@ classifier_config_dict = {
 #    'sklearn.preprocessing.RobustScaler': {
 #    },
 
-    'sklearn_wrap.SKStandardScaler': {
+    'd3m.primitives.data_preprocessing.standard_scaler.SKlearn': {
     },
 
     'd3m.primitives.sri.tpot.ZeroCount': {
     },
 
-    'sklearn_wrap.SKOneHotEncoder': {
+    'd3m.primitives.data_transformation.one_hot_encoder.SKlearn': {
         'minimum_fraction': [0.05, 0.1, 0.15, 0.2, 0.25],
         'sparse': [False]
     },
@@ -187,7 +187,7 @@ classifier_config_dict = {
 #        }
 #    },
 
-    'sklearn_wrap.SKSelectPercentile': {
+    'd3m.primitives.feature_selection.select_percentile.SKlearn': {
         'percentile': range(1, 100),
         'score_func': ['f_classif']
     }
