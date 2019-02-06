@@ -455,8 +455,6 @@ def D3MWrapperClassFactory(pclass, ppath):
                 _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
         # The default true setting wreaks havoc on our ability to do cross-validation
 #        hpmods['add_index_columns'] = False
-        if 'use_semantic_types' in hpdefaults and not 'use_semantic_types' in params:
-            hpmods['use_semantic_types'] = True
         return hpmods
     config['_get_hpmods'] = _get_hpmods
 
