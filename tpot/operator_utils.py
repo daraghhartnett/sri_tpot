@@ -237,7 +237,7 @@ def TPOTOperatorClassFactory(opsourse, opdict, BaseClass=Operator, ArgBaseClass=
         if not isinstance(prange, dict):
             prange = [ v for v in prange if _supports_arg_setting(op_obj, pname, v) ]
             if len(prange) == 0:
-                _logger("Warning: No valid values provided for {} of {}".format(pname, op_obj.__name__))
+                _logger.info("Warning: No valid values provided for {} of {}".format(pname, op_obj.__name__))
                 return None
             classname = '{}__{}'.format(op_str, pname)
             arg_types.append(ARGTypeClassFactory(classname, prange, ArgBaseClass))
