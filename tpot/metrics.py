@@ -67,6 +67,8 @@ def balanced_accuracy(y_true, y_pred):
     return np.mean(all_class_accuracies)
 
 def f1_true(y_true, y_pred):
+    if hasattr(y_true, 'iloc'):
+        y_true = y_true.iloc[:, 0].tolist()
     y_true = [ int(x) for x in y_true ]
     y_pred = [ int(x) for x in y_pred ]
     return f1_score(y_true, y_pred)
