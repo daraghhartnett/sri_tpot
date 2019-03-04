@@ -76,7 +76,7 @@ def f1_true(y_true, y_pred):
 def root_mean_squared_error(y_true, y_pred):
     return sqrt(mean_squared_error(y_true, y_pred))
 
-def root_mean_squared_error_avg(y_true, y_pred):
+def root_mean_squared_error_average(y_true, y_pred):
     #TODO: How do we average these values, dont we need them all to do this?
     return sqrt(mean_squared_error(y_true, y_pred))
 
@@ -86,4 +86,4 @@ SCORERS['jaccard_similarity_score'] = make_scorer(jaccard_similarity_score)
 SCORERS['f1_true'] = make_scorer(f1_true)
 SCORERS['mean_squared_error'] = make_scorer(mean_squared_error)
 SCORERS['root_mean_squared_error'] = make_scorer(root_mean_squared_error)
-SCORERS['root_mean_squared_error_avg'] = make_scorer(root_mean_squared_error_avg)
+SCORERS['root_mean_squared_error_average'] = make_scorer(root_mean_squared_error_average)
