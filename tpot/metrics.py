@@ -25,8 +25,8 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
 from sklearn.metrics import make_scorer, SCORERS
-from sklearn.metrics import jaccard_similarity_score, f1_score
-
+from sklearn.metrics import jaccard_similarity_score, f1_score, mean_squared_error
+from math import sqrt
 
 def balanced_accuracy(y_true, y_pred):
     """Default scoring function: balanced accuracy.
@@ -73,6 +73,17 @@ def f1_true(y_true, y_pred):
     y_pred = [ int(x) for x in y_pred ]
     return f1_score(y_true, y_pred)
 
+def root_mean_squared_error(y_true, y_pred):
+    return sqrt(mean_squared_error(y_true, y_pred))
+
+def root_mean_squared_error_avg(y_true, y_pred):
+    #TODO: How do we average these values, dont we need them all to do this?
+    return sqrt(mean_squared_error(y_true, y_pred))
+
+
 SCORERS['balanced_accuracy'] = make_scorer(balanced_accuracy)
 SCORERS['jaccard_similarity_score'] = make_scorer(jaccard_similarity_score)
 SCORERS['f1_true'] = make_scorer(f1_true)
+SCORERS['mean_squared_error'] = make_scorer(mean_squared_error)
+SCORERS['root_mean_squared_error'] = make_scorer(root_mean_squared_error)
+SCORERS['root_mean_squared_error_avg'] = make_scorer(root_mean_squared_error_avg)

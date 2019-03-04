@@ -80,7 +80,7 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("TPOT version 1.1.8 (SRI Fork)")
+print("TPOT version 1.1.9 (SRI Fork)")
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
