@@ -29,7 +29,7 @@ from d3m.primitive_interfaces.transformer import TransformerPrimitiveBase
 from d3m.primitive_interfaces.supervised_learning import SupervisedLearnerPrimitiveBase
 import d3m.index
 from d3m.container import DataFrame
-import tpot.d3mgrid as d3mgrid
+import sri_tpot.d3mgrid as d3mgrid
 import inspect
 
 import logging

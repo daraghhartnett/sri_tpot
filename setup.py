@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 def calculate_version():
-    initpy = open('tpot/_version.py').read().split('\n')
+    initpy = open('sri_tpot/_version.py').read().split('\n')
     version = list(filter(lambda x: '__version__' in x, initpy))[0].split('\'')[1]
     return version
 
@@ -12,14 +12,14 @@ def calculate_version():
 package_version = calculate_version()
 
 setup(
-    name='SRITPOT',
+    name='sri_tpot',
     version=package_version,
     author='Randal S. Olson',
     author_email='rso@randalolson.com',
     packages=find_packages(),
-    url='https://github.com/daraghhartnett/tpot',
+    url='https://github.com/daraghhartnett/sri_tpot',
     license='GNU/LGPLv3',
-    entry_points={'console_scripts': ['tpot=tpot:main', ]},
+    entry_points={'console_scripts': ['sri_tpot=sri_tpot:main', ]},
     description=('SRI Fork of Tree-based Pipeline Optimization Tool'),
     long_description='''
 The SRI International fork of the TPOT repo witch some modifications to allow us to get it to consider
@@ -32,7 +32,7 @@ If you have any questions or comments about TPOT, please feel free to contact me
 
 E-mail: daragh.hartnett@sri.com (rso@randalolson.com for the original TPOT code base.)
 
-This project is hosted at https://github.com/daraghhartnett/tpot
+This project is hosted at https://github.com/daraghhartnett/sri_tpot
 ''',
     zip_safe=True,
     install_requires=['numpy>=1.12.1',

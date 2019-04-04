@@ -1,4 +1,4 @@
 [run]
 branch = True
-source = tpot
-include = tpot/*.py
+source = sri_tpot
+include = sri_tpot/*.py

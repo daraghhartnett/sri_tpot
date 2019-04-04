@@ -18,31 +18,31 @@ Instructions on getting started with PyPi are here:
     > https://packaging.python.org/tutorials/packaging-projects/
 
 
-4.0 Instructions on uploading new versions of SRITPOT to PyPi:
+4.0 Instructions on uploading new versions of sri_tpot to PyPi:
 ==============================================================
 
 1. Get credentials to a PyPi account
 
 2. Checkout the sri fork of tpot:
 
-    > git clone https://github.com/daraghhartnett/tpot
-    > cd tpot
+    > git clone https://github.com/daraghhartnett/sri_tpot
+    > cd sri_tpot
 
 3. Build the distribution:
 
     * See the packaging-projects instructions in 3.0 if you dont have setuptools, wheel or twine installed before
       you try to upload.
-    * Note that if a version already exists on PyPi you will need to roll the version in ./tpot/_version.py
+    * Note that if a version already exists on PyPi you will need to roll the version in ./sri_tpot/_version.py
       and the log message in base.py before you try to upload.
     > python setup.py sdist bdist_wheel
     > ~/.local/bin/twine upload dist/*
 
 4. To install the SRI fork of TPOT do the following:
 
-   > pip install SRITPOT
+   > pip install sri_tpot
 
    * or the following if you already have it installed and want the latest version:
-   > pip uninstall SRITPOT
-   > pip install --no-cache-dir --upgrade SRITPOT
+   > pip uninstall sri_tpot
+   > pip install --no-cache-dir --upgrade sri_tpot
    * And for a specific version:
-   > pip install --no-cache-dir SRITPOT==0.9.6
+   > pip install --no-cache-dir sri_tpot==0.9.6

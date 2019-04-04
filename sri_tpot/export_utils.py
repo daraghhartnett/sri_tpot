@@ -22,7 +22,7 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 import deap
 # from d3m.primitives.sri.tpot import StackingOperator
 from sri.tpot.stacking import StackingOperator
-from tpot.operator_utils import D3MWrapperClassFactory, D3MWrappedOperators
+from sri_tpot.operator_utils import D3MWrapperClassFactory, D3MWrappedOperators
 
 so_wrapping_class = D3MWrapperClassFactory(StackingOperator, 'd3m.primitives.sri.tpot.StackingOperator')
 
