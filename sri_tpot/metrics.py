@@ -81,9 +81,9 @@ def root_mean_squared_error_average(y_true, y_pred):
     return sqrt(mean_squared_error(y_true, y_pred))
 
 
-SCORERS['balanced_accuracy'] = make_scorer(balanced_accuracy)
-SCORERS['jaccard_similarity_score'] = make_scorer(jaccard_similarity_score)
-SCORERS['f1_true'] = make_scorer(f1_true)
-SCORERS['mean_squared_error'] = make_scorer(mean_squared_error)
-SCORERS['root_mean_squared_error'] = make_scorer(root_mean_squared_error)
-SCORERS['root_mean_squared_error_average'] = make_scorer(root_mean_squared_error_average)
+SCORERS['balanced_accuracy'] = make_scorer(balanced_accuracy, greater_is_better=True)
+SCORERS['jaccard_similarity_score'] = make_scorer(jaccard_similarity_score, greater_is_better=True)
+SCORERS['f1_true'] = make_scorer(f1_true, greater_is_better=True)
+SCORERS['mean_squared_error'] = make_scorer(mean_squared_error, greater_is_better=False)
+SCORERS['root_mean_squared_error'] = make_scorer(root_mean_squared_error, greater_is_better=False)
+SCORERS['root_mean_squared_error_average'] = make_scorer(root_mean_squared_error_average, greater_is_better=False)
