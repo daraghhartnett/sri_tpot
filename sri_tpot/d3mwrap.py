@@ -7,7 +7,8 @@ _logger = logging.getLogger(__name__)
 
 
 TRANSFORMER_FAMILIES = {'FEATURE_SELECTION', 'DATA_PREPROCESSING', 'DATA_TRANSFORMATION', 'FEATURE_EXTRACTION'}
-
+PREDICTOR_FAMILIES = { 'CLASSIFICATION', 'REGRESSION', 'TIME_SERIES_FORECASTING' }
+PREDICTED_TARGET = 'https://metadata.datadrivendiscovery.org/types/PredictedTarget'
 
 class D3MWrapper(object):
 
@@ -152,10 +153,16 @@ def D3MWrapperClassFactory(pclass, ppath):
     def predict(self, X):
         # We convert to ndarray here, because sklearn gets confused about Dataframes
 #        print("%s asked to predict on data with %d rows" % (type(self), len(X)))
-        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value.values
+        df = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        # Find the column with predicted values
+        pred_columns = df.metadata.get_columns_with_semantic_type(PREDICTED_TARGET)
+        if len(pred_columns) == 0:  # Punt
+            result = df.values
+        else:
+            result = df.iloc[:,pred_columns[0]].values
 #        print("%s produced %d predictions" % (type(self), len(result)))
         return result
-    if family == 'CLASSIFICATION' or family == 'REGRESSION':
+    if family in PREDICTOR_FAMILIES:
         config['predict'] = predict
 
     def get_internal_class(self):
@@ -185,7 +192,7 @@ def D3MWrapperClassFactory(pclass, ppath):
 
     newname = 'AF_%s' % pclass.__name__
     parents = [D3MWrapper]
-    if family == 'REGRESSION':
+    if family == 'REGRESSION' or family == 'TIME_SERIES_FORECASTING':
         parents.append(RegressorMixin)
     if family == 'CLASSIFICATION':
         parents.append(ClassifierMixin)
