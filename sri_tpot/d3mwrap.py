@@ -1,4 +1,6 @@
 import logging
+from frozendict import frozendict
+from uuid import uuid4
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin
 from d3m.container import DataFrame
 from .pipelinecache import PipelineCache
@@ -129,6 +131,8 @@ def D3MWrapperClassFactory(pclass, ppath):
     config['set_params'] = set_params
 
     def fit(self, X, y):
+        if self._get_cached_produce(X) is not None:
+            return self
         required_kwargs = mdata['primitive_code']['instance_methods']['set_training_data']['arguments']
         supplied_kwargs = {}
         if 'inputs' in required_kwargs:
@@ -142,19 +146,21 @@ def D3MWrapperClassFactory(pclass, ppath):
     config['fit'] = fit
 
     def transform(self, X):
-#        print("%s asked to transform data with %d rows" % (type(self), len(X)))
+        result = self._get_cached_produce(X)
+        if result is not None:
+            return result
         result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
-#        print("%s transformed to %d rows" % (type(self), len(result)))
-        return result
+        return self._cache_produce(X, result)
     if family in TRANSFORMER_FAMILIES:
         config['transform'] = transform
 
     def predict(self, X):
-        # We convert to ndarray here, because sklearn gets confused about Dataframes
-#        print("%s asked to predict on data with %d rows" % (type(self), len(X)))
-        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value.values
-#        print("%s produced %d predictions" % (type(self), len(result)))
-        return result
+        result = self._get_cached_produce(X)
+        if result is not None:
+            return result
+        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        self._cache_produce(X, result)
+        return result.values
     if family == 'CLASSIFICATION' or family == 'REGRESSION':
         config['predict'] = predict
 
@@ -165,6 +171,60 @@ def D3MWrapperClassFactory(pclass, ppath):
     def get_internal_primitive(self):
         return self._prim
     config['get_internal_primitive'] = get_internal_primitive
+
+    def _get_cache_metadata(self, X, add=False):
+        if D3MWrapper.PIPELINE_CACHE is None:
+            return None
+        mdata = X.metadata.query(())
+        try:
+            data_id = mdata['autoflow_dataset_id']
+            pipeline_steps = mdata['autoflow_pipeline_steps']
+        except KeyError:
+            if add:
+                _logger.info("Adding autoflow metadata for step %s" % str(self))
+                data_id = str(uuid4())
+                pipeline_steps = ()
+                mdata = dict(**mdata, autoflow_dataset_id=data_id, autoflow_pipeline_steps=pipeline_steps)
+                X.metadata = X.metadata.update((), mdata)
+            else:
+                return None
+        return data_id, pipeline_steps
+    config['_get_cache_metadata'] = _get_cache_metadata
+
+    def _get_cached_produce(self, X):
+        mdata = self._get_cache_metadata(X)
+        if mdata is None:
+            return None
+        data_id, pipeline_steps = mdata
+        pipeline = pipeline_steps + ( str(self), )
+        return D3MWrapper.PIPELINE_CACHE.retrieve_from_cache(data_id, pipeline)
+    config['_get_cached_produce'] = _get_cached_produce
+
+    def _cache_produce(self, input, output):
+        if D3MWrapper.PIPELINE_CACHE is None:
+            return output
+        input_mdata = input.metadata.query(())
+        # The input lacks the appropriate metadata.  Add it.
+        try:
+            data_id = input_mdata['autoflow_dataset_id']
+            pipeline_steps = input_mdata['autoflow_pipeline_steps']
+        except KeyError:
+            _logger.info("Adding autoflow metadata for step %s" % str(self))
+            data_id = str(uuid4())
+            pipeline_steps = ()
+            mdata = dict(**input_mdata, autoflow_dataset_id=data_id, autoflow_pipeline_steps=pipeline_steps)
+            input.metadata = input.metadata.update((), mdata)
+        # Now add the new step and update the output metadata
+        current_step = str(self)
+        pipeline = pipeline_steps + ( current_step, )
+        output_mdata = output.metadata.query(())
+        output.metadata = output.metadata.update((), dict(**output_mdata,
+                                                          autoflow_dataset_id=data_id,
+                                                          autoflow_pipeline_steps=pipeline))
+        # Finally store the output in the cache
+        D3MWrapper.PIPELINE_CACHE.add_to_cache(data_id, pipeline, output)
+        return output
+    config['_cache_produce'] = _cache_produce
 
     # Special method to enable TPOT to suppress unsupported arg primitives
     @staticmethod

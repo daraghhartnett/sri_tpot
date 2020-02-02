@@ -24,7 +24,7 @@ class PipelineCache(object):
         :return: The result from a previous execution of this pipeline, if present, else None.
         """
         self.time += 1
-        key = tuple(dataset_id, *pipeline)
+        key = (dataset_id, *pipeline)
         try:
             entry = self.cache[key]
             entry.reftime = self.time
@@ -32,7 +32,7 @@ class PipelineCache(object):
         except KeyError:
             return None
 
-    def cache(self, dataset_id, pipeline, data):
+    def add_to_cache(self, dataset_id, pipeline, data):
         """
         Stores the provided data at the position indexed by pipeline.
 
@@ -42,7 +42,7 @@ class PipelineCache(object):
         :return: None
         """
         self.time += 1
-        key = tuple(dataset_id, *pipeline)
+        key = (dataset_id, *pipeline)
         self.purge(data)
         self.cache[key] = CacheEntry(key=key, value=data, reftime=self.time)
 
