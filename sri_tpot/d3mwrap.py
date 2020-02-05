@@ -7,13 +7,15 @@ from .pipelinecache import PipelineCache
 
 _logger = logging.getLogger(__name__)
 
-
 TRANSFORMER_FAMILIES = {'FEATURE_SELECTION', 'DATA_PREPROCESSING', 'DATA_TRANSFORMATION', 'FEATURE_EXTRACTION'}
+PREDICTOR_FAMILIES = { 'CLASSIFICATION', 'REGRESSION', 'TIME_SERIES_FORECASTING' }
+PREDICTED_TARGET = 'https://metadata.datadrivendiscovery.org/types/PredictedTarget'
 
 
 class D3MWrapper(object):
 
     PIPELINE_CACHE = None
+    FAMILY_HYPERPARAMETER_SETTINGS = {}
 
     @staticmethod
     def enable_cache(enable):
@@ -21,6 +23,21 @@ class D3MWrapper(object):
             D3MWrapper.PIPELINE_CACHE = PipelineCache()
         else:
             D3MWrapper.PIPELINE_CACHE = None
+
+    @staticmethod
+    def set_family_hyperpameters(family, **hps):
+        try:
+            family_entry = D3MWrapper.FAMILY_HYPERPARAMETER_SETTINGS[family]
+        except KeyError:
+            family_entry = D3MWrapper.FAMILY_HYPERPARAMETER_SETTINGS[family] = {}
+        for hpkey,hpval in hps.items():
+            family_entry[hpkey] = hpval
+
+    def get_family_hyperpameters(self):
+        try:
+            return D3MWrapper.FAMILY_HYPERPARAMETER_SETTINGS[self._family]
+        except KeyError:
+            return {}
 
     def __str__(self):
         cname = self.__class__.__name__
@@ -85,16 +102,28 @@ def D3MWrapperClassFactory(pclass, ppath):
     config = {}
 
     def _get_hpmods(self, params):
+
         hpmods = {}
+
+        # Family settings
+        family_mods = self.get_family_hyperpameters()
+        for key, val in family_mods.items():
+            if key in hpdefaults:
+                if self.takes_hyperparameter_value(key, val):
+                    hpmods[key] = val
+            else:
+                _logger.info("Warning: {} does not accept the {} family hyperpameter".format(pclass, key))
+
+        # Local settings
         for key, val in params.items():
             if isinstance(val, D3MWrapper):
                 val = val.get_internal_primitive()
             if key in hpdefaults:
-                hpmods[key] = val
+                if self.takes_hyperparameter_value(key, val):
+                    hpmods[key] = val
             else:
                 _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
-        # The default true setting wreaks havoc on our ability to do cross-validation
-#        hpmods['add_index_columns'] = False
+
         return hpmods
     config['_get_hpmods'] = _get_hpmods
 
@@ -102,6 +131,7 @@ def D3MWrapperClassFactory(pclass, ppath):
         self._pclass = pclass
         self._params = kwargs
         self._fitted = False
+        self._family = family
         self._hpmods = self._get_hpmods(kwargs)
         self._prim = pclass(hyperparams=hpclass(hpdefaults, **self._hpmods))
     config['__init__'] = __init__
@@ -158,10 +188,17 @@ def D3MWrapperClassFactory(pclass, ppath):
         result = self._get_cached_produce(X)
         if result is not None:
             return result
-        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        df = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        # Find the column with predicted values
+        pred_columns = df.metadata.get_columns_with_semantic_type(PREDICTED_TARGET)
+        if len(pred_columns) == 0:  # Punt
+            result = df.values
+        else:
+            result = df.iloc[:,pred_columns[0]].values
+#        print("%s produced %d predictions" % (type(self), len(result)))
         self._cache_produce(X, result)
-        return result.values
-    if family == 'CLASSIFICATION' or family == 'REGRESSION':
+        return result
+    if family in PREDICTOR_FAMILIES:
         config['predict'] = predict
 
     def get_internal_class(self):
@@ -245,7 +282,7 @@ def D3MWrapperClassFactory(pclass, ppath):
 
     newname = 'AF_%s' % pclass.__name__
     parents = [D3MWrapper]
-    if family == 'REGRESSION':
+    if family == 'REGRESSION' or family == 'TIME_SERIES_FORECASTING':
         parents.append(RegressorMixin)
     if family == 'CLASSIFICATION':
         parents.append(ClassifierMixin)
