@@ -166,9 +166,13 @@ def D3MWrapperClassFactory(pclass, ppath):
         required_kwargs = mdata['primitive_code']['instance_methods']['set_training_data']['arguments']
         supplied_kwargs = {}
         if 'inputs' in required_kwargs:
-            supplied_kwargs['inputs'] = DataFrame(X, generate_metadata=False)
+            if not isinstance(X, DataFrame):
+                X = DataFrame(X, generate_metadata=True)
+            supplied_kwargs['inputs'] = X
         if 'outputs' in required_kwargs:
-            supplied_kwargs['outputs'] = DataFrame(y, generate_metadata=False)
+            if not isinstance(y, DataFrame):
+                y = DataFrame(y, generate_metadata=True)
+            supplied_kwargs['outputs'] = y
         self._prim.set_training_data(**supplied_kwargs)
         self._prim.fit()
         self._fitted = True
@@ -179,7 +183,9 @@ def D3MWrapperClassFactory(pclass, ppath):
         result = self._get_cached_produce(X)
         if result is not None:
             return result
-        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        if not isinstance(X, DataFrame):
+            X = DataFrame(X, generate_metadata=True)
+        result = self._prim.produce(inputs=X).value
         return self._cache_produce(X, result)
     if family in TRANSFORMER_FAMILIES:
         config['transform'] = transform
@@ -188,7 +194,9 @@ def D3MWrapperClassFactory(pclass, ppath):
         result = self._get_cached_produce(X)
         if result is not None:
             return result
-        df = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        if not isinstance(X, DataFrame):
+            X = DataFrame(X, generate_metadata=True)
+        df = self._prim.produce(inputs=X).value
         # Find the column with predicted values
         pred_columns = df.metadata.get_columns_with_semantic_type(PREDICTED_TARGET)
         if len(pred_columns) == 0:  # Punt
