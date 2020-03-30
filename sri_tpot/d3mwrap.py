@@ -1,5 +1,4 @@
 import logging
-from frozendict import frozendict
 from uuid import uuid4
 from sklearn.base import ClassifierMixin, RegressorMixin, TransformerMixin
 from d3m.container import DataFrame
@@ -7,14 +6,15 @@ from .pipelinecache import PipelineCache
 
 _logger = logging.getLogger(__name__)
 
-
-TRANSFORMER_FAMILIES = {'FEATURE_SELECTION', 'DATA_PREPROCESSING', 'DATA_TRANSFORMATION', 'FEATURE_EXTRACTION'}
+TRANSFORMER_FAMILIES = { 'FEATURE_SELECTION', 'DATA_PREPROCESSING', 'DATA_TRANSFORMATION', 'FEATURE_EXTRACTION' }
 PREDICTOR_FAMILIES = { 'CLASSIFICATION', 'REGRESSION', 'TIME_SERIES_FORECASTING' }
 PREDICTED_TARGET = 'https://metadata.datadrivendiscovery.org/types/PredictedTarget'
+
 
 class D3MWrapper(object):
 
     PIPELINE_CACHE = None
+    FAMILY_HYPERPARAMETER_SETTINGS = {}
 
     @staticmethod
     def enable_cache(enable):
@@ -22,6 +22,24 @@ class D3MWrapper(object):
             D3MWrapper.PIPELINE_CACHE = PipelineCache()
         else:
             D3MWrapper.PIPELINE_CACHE = None
+
+    @staticmethod
+    def set_family_hyperpameters(family, **hps):
+        try:
+            family_entry = D3MWrapper.FAMILY_HYPERPARAMETER_SETTINGS[family]
+        except KeyError:
+            family_entry = D3MWrapper.FAMILY_HYPERPARAMETER_SETTINGS[family] = {}
+        for hpkey, hpval in hps.items():
+            family_entry[hpkey] = hpval
+
+    def get_family_hyperpameters(self):
+        try:
+            return D3MWrapper.FAMILY_HYPERPARAMETER_SETTINGS[self._family]
+        except KeyError:
+            return {}
+
+    def get_internal_primitive(self):
+        return self._prim
 
     def __str__(self):
         cname = self.__class__.__name__
@@ -39,27 +57,27 @@ class D3MWrappedOperators(object):
     path_classes = {}
 
     @classmethod
-    def add_class(self, oclass, opath):
+    def add_class(cls, oclass, opath):
         cname = oclass.__name__
-        self.wrapped_classes[cname] = oclass
-        self.class_paths[cname] = opath
-        self.path_classes[opath] = oclass
+        cls.wrapped_classes[cname] = oclass
+        cls.class_paths[cname] = opath
+        cls.path_classes[opath] = oclass
 
     @classmethod
-    def get_class_from_name(self, cname):
-        return self.wrapped_classes[cname]
+    def get_class_from_name(cls, cname):
+        return cls.wrapped_classes[cname]
 
     @classmethod
-    def get_class_from_path(self, cname):
-        return self.path_classes[cname]
+    def get_class_from_path(cls, cname):
+        return cls.path_classes[cname]
 
     @classmethod
-    def get_path(self, cname):
-        return self.class_paths[cname]
+    def get_path(cls, cname):
+        return cls.class_paths[cname]
 
     @classmethod
-    def have_class(self, cname):
-        return cname in self.wrapped_classes
+    def have_class(cls, cname):
+        return cname in cls.wrapped_classes
 
 
 def D3MWrapperClassFactory(pclass, ppath):
@@ -86,16 +104,31 @@ def D3MWrapperClassFactory(pclass, ppath):
     config = {}
 
     def _get_hpmods(self, params):
+
         hpmods = {}
+
+        # Family settings
+        family_mods = self.get_family_hyperpameters()
+        for key, val in family_mods.items():
+            if key in hpdefaults:
+                if self.takes_hyperparameter_value(key, val):
+                    hpmods[key] = val
+            else:
+                if not self._logged_hp_warnings:
+                    _logger.info("Warning: {} does not accept the {} family hyperpameter".format(pclass, key))
+
+        # Local settings
         for key, val in params.items():
             if isinstance(val, D3MWrapper):
                 val = val.get_internal_primitive()
             if key in hpdefaults:
-                hpmods[key] = val
+                if self.takes_hyperparameter_value(key, val):
+                    hpmods[key] = val
             else:
-                _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
-        # The default true setting wreaks havoc on our ability to do cross-validation
-#        hpmods['add_index_columns'] = False
+                if not self._logged_hp_warnings:
+                    _logger.info("Warning: {} does not accept the {} hyperparam".format(pclass, key))
+
+        self.__class__._logged_hp_warnings = True
         return hpmods
     config['_get_hpmods'] = _get_hpmods
 
@@ -103,6 +136,7 @@ def D3MWrapperClassFactory(pclass, ppath):
         self._pclass = pclass
         self._params = kwargs
         self._fitted = False
+        self._family = family
         self._hpmods = self._get_hpmods(kwargs)
         self._prim = pclass(hyperparams=hpclass(hpdefaults, **self._hpmods))
     config['__init__'] = __init__
@@ -137,9 +171,13 @@ def D3MWrapperClassFactory(pclass, ppath):
         required_kwargs = mdata['primitive_code']['instance_methods']['set_training_data']['arguments']
         supplied_kwargs = {}
         if 'inputs' in required_kwargs:
-            supplied_kwargs['inputs'] = DataFrame(X, generate_metadata=False)
+            if not isinstance(X, DataFrame):
+                X = DataFrame(X, generate_metadata=True)
+            supplied_kwargs['inputs'] = X
         if 'outputs' in required_kwargs:
-            supplied_kwargs['outputs'] = DataFrame(y, generate_metadata=False)
+            if not isinstance(y, DataFrame):
+                y = DataFrame(y, generate_metadata=True)
+            supplied_kwargs['outputs'] = y
         self._prim.set_training_data(**supplied_kwargs)
         self._prim.fit()
         self._fitted = True
@@ -150,22 +188,26 @@ def D3MWrapperClassFactory(pclass, ppath):
         result = self._get_cached_produce(X)
         if result is not None:
             return result
-        result = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
+        if not isinstance(X, DataFrame):
+            X = DataFrame(X, generate_metadata=True)
+        result = self._prim.produce(inputs=X).value
         return self._cache_produce(X, result)
     if family in TRANSFORMER_FAMILIES:
         config['transform'] = transform
 
     def predict(self, X):
-        # We convert to ndarray here, because sklearn gets confused about Dataframes
-#        print("%s asked to predict on data with %d rows" % (type(self), len(X)))
-        df = self._prim.produce(inputs=DataFrame(X, generate_metadata=False)).value
-        # Find the column with predicted values
+        if not isinstance(X, DataFrame):
+            X = DataFrame(X, generate_metadata=True)
+        result = self._get_cached_produce(X)
+        if result is not None:
+            return result
+        df = self._prim.produce(inputs=X).value
         pred_columns = df.metadata.get_columns_with_semantic_type(PREDICTED_TARGET)
         if len(pred_columns) == 0:  # Punt
             result = df.values
         else:
-            result = df.iloc[:,pred_columns[0]].values
-#        print("%s produced %d predictions" % (type(self), len(result)))
+            result = df.iloc[:, pred_columns[0]].values
+        self._cache_produce(X, result)
         return result
     if family in PREDICTOR_FAMILIES:
         config['predict'] = predict
@@ -181,7 +223,7 @@ def D3MWrapperClassFactory(pclass, ppath):
     def _get_cache_metadata(self, X, add=False):
         if D3MWrapper.PIPELINE_CACHE is None:
             return None
-        mdata = X.metadata.query(())
+        df_mdata = X.metadata.query(())
         try:
             data_id = mdata['autoflow_dataset_id']
             pipeline_steps = mdata['autoflow_pipeline_steps']
@@ -190,18 +232,18 @@ def D3MWrapperClassFactory(pclass, ppath):
                 _logger.info("Adding autoflow metadata for step %s" % str(self))
                 data_id = str(uuid4())
                 pipeline_steps = ()
-                mdata = dict(**mdata, autoflow_dataset_id=data_id, autoflow_pipeline_steps=pipeline_steps)
-                X.metadata = X.metadata.update((), mdata)
+                df_mdata = dict(**df_mdata, autoflow_dataset_id=data_id, autoflow_pipeline_steps=pipeline_steps)
+                X.metadata = X.metadata.update((), df_mdata)
             else:
                 return None
         return data_id, pipeline_steps
     config['_get_cache_metadata'] = _get_cache_metadata
 
     def _get_cached_produce(self, X):
-        mdata = self._get_cache_metadata(X)
-        if mdata is None:
+        df_mdata = self._get_cache_metadata(X)
+        if df_mdata is None:
             return None
-        data_id, pipeline_steps = mdata
+        data_id, pipeline_steps = df_mdata
         pipeline = pipeline_steps + ( str(self), )
         return D3MWrapper.PIPELINE_CACHE.retrieve_from_cache(data_id, pipeline)
     config['_get_cached_produce'] = _get_cached_produce
@@ -218,8 +260,8 @@ def D3MWrapperClassFactory(pclass, ppath):
             _logger.info("Adding autoflow metadata for step %s" % str(self))
             data_id = str(uuid4())
             pipeline_steps = ()
-            mdata = dict(**input_mdata, autoflow_dataset_id=data_id, autoflow_pipeline_steps=pipeline_steps)
-            input.metadata = input.metadata.update((), mdata)
+            input_mdata = dict(**input_mdata, autoflow_dataset_id=data_id, autoflow_pipeline_steps=pipeline_steps)
+            input.metadata = input.metadata.update((), input_mdata)
         # Now add the new step and update the output metadata
         current_step = str(self)
         pipeline = pipeline_steps + ( current_step, )
@@ -239,13 +281,13 @@ def D3MWrapperClassFactory(pclass, ppath):
     config['takes_hyperparameter'] = takes_hyperparameter
 
     # Check whether the primitive accepts a value that TPOT thinks is valid
-    @staticmethod
-    def takes_hyperparameter_value(hp, value):
+    def takes_hyperparameter_value(self, hp, value):
         try:
             hpclass.configuration[hp].validate(value)
             return True
         except:
-            _logger.info("Warning: Suppressing value of {} for {} of {}".format(value, hp, pclass.__name__))
+            if not self._logged_hp_warnings:
+                _logger.info("Warning: Suppressing value of {} for {} of {}".format(value, hp, pclass.__name__))
             return False
     config['takes_hyperparameter_value'] = takes_hyperparameter_value
 
@@ -259,6 +301,7 @@ def D3MWrapperClassFactory(pclass, ppath):
         parents.append(TransformerMixin)
     class_ = type(newname, tuple(parents), config)
     class_.pclass = pclass
+    class_._logged_hp_warnings = False
 
     D3MWrappedOperators.add_class(class_, ppath)
     # For pickling to work, we need to install the class globally
