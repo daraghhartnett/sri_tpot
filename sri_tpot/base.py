@@ -63,7 +63,7 @@ from update_checker import update_check
 
 from ._version import __version__
 from .operator_utils import TPOTOperatorClassFactory, Operator, ARGType
-from .d3mwrap import D3MWrappedOperators
+from sri.d3mglue.d3mwrap import D3MWrappedOperators
 from .export_utils import export_pipeline, expr_to_tree, generate_pipeline_code
 from .decorators import _pre_test
 from .builtins import CombineDFs, StackingEstimator
