@@ -25,8 +25,8 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, TransformerMixin
-import sri_tpot.d3mgrid as d3mgrid
-from sri_tpot.d3mwrap import D3MWrapperClassFactory, supports_hyperparameter, supports_hyperparameter_setting
+import sri.d3mglue.d3mgrid as d3mgrid
+from sri.d3mglue.d3mwrap import D3MWrapperClassFactory, supports_hyperparameter, supports_hyperparameter_setting
 import inspect
 
 import logging
