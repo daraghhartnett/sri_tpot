@@ -55,7 +55,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import check_X_y
 from sklearn.externals.joblib import Parallel, delayed, Memory
 from sklearn.pipeline import make_pipeline, make_union
-from sklearn.preprocessing import FunctionTransformer, Imputer
+# from sklearn.preprocessing import FunctionTransformer, Imputer
+from sklearn.impute import SimpleImputer as Imputer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.scorer import make_scorer, _BaseScorer
 
@@ -81,7 +82,7 @@ from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_scor
 
 import logging
 
-print("sri_tpot version 1.2.8")
+print("sri_tpot version 1.2.9")
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
